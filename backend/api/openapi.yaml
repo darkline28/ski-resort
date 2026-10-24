@@ -1,0 +1,65 @@
+openapi: 3.0.3
+
+info:
+  title: Ski Resort API
+  version: 1.0.0
+
+paths:
+  /auth/register:
+    post:
+      tags:
+        - auth
+      operationId: registerUser
+      summary: Регистрация пользователя
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - email
+                - phone
+                - password
+              properties:
+                name:
+                  type: string
+                email:
+                  type: string
+                phone:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '201':
+          description: Пользователь успешно зарегистрирован
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - id
+                  - name
+                  - email
+                  - role
+                properties:
+                  id:
+                    type: integer
+                  name:
+                    type: string
+                  email:
+                    type: string
+                  role:
+                    type: string
+                    enum:
+                      - client
+                      - instructor
+                      - admin
+        '400':
+          description: "Некорректные данные запроса"
+        '409':
+          description: "Пользователь с таким email уже сущетсвует"
+
+
+
