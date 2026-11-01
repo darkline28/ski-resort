@@ -4,7 +4,7 @@ create table users (
 	id INTEGER generated always as identity primary key,
 	name VARCHAR(100) not null,
 	email VARCHAR(255) not null unique,
-	phone VARCHAR(20),
+	phone VARCHAR(20) not null,
 	password_hash VARCHAR(255) not null,
 	role VARCHAR(20) not null check (role in ('client', 'instructor', 'admin')),
 	created_at TIMESTAMPTZ not null default NOW()

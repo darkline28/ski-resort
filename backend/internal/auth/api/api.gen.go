@@ -13,7 +13,23 @@ import (
 	"net/http"
 
 	"github.com/oapi-codegen/runtime"
+	openapi_types "github.com/oapi-codegen/runtime/types"
 )
+
+// Defines values for LoginUser200JSONResponseBodyTokenType.
+const (
+	LoginUser200JSONResponseBodyTokenTypeBearer LoginUser200JSONResponseBodyTokenType = "Bearer"
+)
+
+// Valid indicates whether the value is a known member of the LoginUser200JSONResponseBodyTokenType enum.
+func (e LoginUser200JSONResponseBodyTokenType) Valid() bool {
+	switch e {
+	case LoginUser200JSONResponseBodyTokenTypeBearer:
+		return true
+	default:
+		return false
+	}
+}
 
 // Defines values for RegisterUser201JSONResponseBodyRole.
 const (
@@ -36,22 +52,61 @@ func (e RegisterUser201JSONResponseBodyRole) Valid() bool {
 	}
 }
 
+// Defines values for RegisterUser201JSONResponseBodyTokenType.
+const (
+	RegisterUser201JSONResponseBodyTokenTypeBearer RegisterUser201JSONResponseBodyTokenType = "Bearer"
+)
+
+// Valid indicates whether the value is a known member of the RegisterUser201JSONResponseBodyTokenType enum.
+func (e RegisterUser201JSONResponseBodyTokenType) Valid() bool {
+	switch e {
+	case RegisterUser201JSONResponseBodyTokenTypeBearer:
+		return true
+	default:
+		return false
+	}
+}
+
+// Error defines model for Error.
+type Error struct {
+	Error   string `json:"error"`
+	Message string `json:"message"`
+}
+
+// LoginUserJSONBody defines parameters for LoginUser.
+type LoginUserJSONBody struct {
+	Email    openapi_types.Email `json:"email"`
+	Password string              `json:"password"`
+}
+
+// LoginUser200JSONResponseBodyTokenType defines parameters for LoginUser.
+type LoginUser200JSONResponseBodyTokenType string
+
 // RegisterUserJSONBody defines parameters for RegisterUser.
 type RegisterUserJSONBody struct {
-	Email    string `json:"email"`
-	Name     string `json:"name"`
-	Password string `json:"password"`
-	Phone    string `json:"phone"`
+	Email    openapi_types.Email `json:"email"`
+	Name     string              `json:"name"`
+	Password string              `json:"password"`
+	Phone    string              `json:"phone"`
 }
 
 // RegisterUser201JSONResponseBodyRole defines parameters for RegisterUser.
 type RegisterUser201JSONResponseBodyRole string
+
+// RegisterUser201JSONResponseBodyTokenType defines parameters for RegisterUser.
+type RegisterUser201JSONResponseBodyTokenType string
+
+// LoginUserJSONRequestBody defines body for LoginUser for application/json ContentType.
+type LoginUserJSONRequestBody LoginUserJSONBody
 
 // RegisterUserJSONRequestBody defines body for RegisterUser for application/json ContentType.
 type RegisterUserJSONRequestBody RegisterUserJSONBody
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
+	// LoginUser Вход пользователя
+	// (POST /auth/login)
+	LoginUser(w http.ResponseWriter, r *http.Request)
 	// RegisterUser Регистрация пользователя
 	// (POST /auth/register)
 	RegisterUser(w http.ResponseWriter, r *http.Request)
@@ -65,6 +120,20 @@ type ServerInterfaceWrapper struct {
 }
 
 type MiddlewareFunc func(http.Handler) http.Handler
+
+// LoginUser operation middleware
+func (siw *ServerInterfaceWrapper) LoginUser(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.LoginUser(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
 
 // RegisterUser operation middleware
 func (siw *ServerInterfaceWrapper) RegisterUser(w http.ResponseWriter, r *http.Request) {
@@ -201,8 +270,76 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	}
 
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/auth/register", wrapper.RegisterUser)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/auth/login", wrapper.LoginUser)
 
 	return m
+}
+
+type LoginUserRequestObject struct {
+	Body *LoginUserJSONRequestBody
+}
+
+type LoginUserResponseObject interface {
+	VisitLoginUserResponse(w http.ResponseWriter) error
+}
+
+type LoginUser200JSONResponse struct {
+	AccessToken string                                `json:"access_token"`
+	TokenType   LoginUser200JSONResponseBodyTokenType `json:"token_type"`
+}
+
+func (response LoginUser200JSONResponse) VisitLoginUserResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type LoginUser400JSONResponse Error
+
+func (response LoginUser400JSONResponse) VisitLoginUserResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type LoginUser401JSONResponse Error
+
+func (response LoginUser401JSONResponse) VisitLoginUserResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type LoginUser500JSONResponse Error
+
+func (response LoginUser500JSONResponse) VisitLoginUserResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
 }
 
 type RegisterUserRequestObject struct {
@@ -214,10 +351,12 @@ type RegisterUserResponseObject interface {
 }
 
 type RegisterUser201JSONResponse struct {
-	Email string                              `json:"email"`
-	Id    int                                 `json:"id"`
-	Name  string                              `json:"name"`
-	Role  RegisterUser201JSONResponseBodyRole `json:"role"`
+	AccessToken string                                   `json:"access_token"`
+	Email       string                                   `json:"email"`
+	Id          int                                      `json:"id"`
+	Name        string                                   `json:"name"`
+	Role        RegisterUser201JSONResponseBodyRole      `json:"role"`
+	TokenType   RegisterUser201JSONResponseBodyTokenType `json:"token_type"`
 }
 
 func (response RegisterUser201JSONResponse) VisitRegisterUserResponse(w http.ResponseWriter) error {
@@ -232,24 +371,53 @@ func (response RegisterUser201JSONResponse) VisitRegisterUserResponse(w http.Res
 	return err
 }
 
-type RegisterUser400Response struct {
-}
+type RegisterUser400JSONResponse Error
 
-func (response RegisterUser400Response) VisitRegisterUserResponse(w http.ResponseWriter) error {
+func (response RegisterUser400JSONResponse) VisitRegisterUserResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(400)
-	return nil
+	_, err := buf.WriteTo(w)
+	return err
 }
 
-type RegisterUser409Response struct {
-}
+type RegisterUser409JSONResponse Error
 
-func (response RegisterUser409Response) VisitRegisterUserResponse(w http.ResponseWriter) error {
+func (response RegisterUser409JSONResponse) VisitRegisterUserResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(409)
-	return nil
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RegisterUser500JSONResponse Error
+
+func (response RegisterUser500JSONResponse) VisitRegisterUserResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
 }
 
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
+	// LoginUser Вход пользователя
+	// (POST /auth/login)
+	LoginUser(ctx context.Context, request LoginUserRequestObject) (LoginUserResponseObject, error)
 	// RegisterUser Регистрация пользователя
 	// (POST /auth/register)
 	RegisterUser(ctx context.Context, request RegisterUserRequestObject) (RegisterUserResponseObject, error)
@@ -292,6 +460,37 @@ type strictHandler struct {
 	ssi         StrictServerInterface
 	middlewares []StrictMiddlewareFunc
 	options     StrictHTTPServerOptions
+}
+
+// LoginUser operation middleware
+func (sh *strictHandler) LoginUser(w http.ResponseWriter, r *http.Request) {
+	var request LoginUserRequestObject
+
+	var body LoginUserJSONRequestBody
+	if err := runtime.BindJSONBody(r, &body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.LoginUser(ctx, request.(LoginUserRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "LoginUser")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(LoginUserResponseObject); ok {
+		if err := validResponse.VisitLoginUserResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
 }
 
 // RegisterUser operation middleware
