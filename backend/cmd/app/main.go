@@ -55,15 +55,6 @@ func main() {
 	strictHandler := api.NewStrictHandler(authHandler, nil)
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /debug/me", func(w http.ResponseWriter, r *http.Request) {
-		userID, ok := middleware.UserIDFromContext(r.Context())
-		if !ok {
-			http.Error(w, "Unauthorized", http.StatusUnauthorized)
-			return
-		}
-
-		fmt.Fprintf(w, "userID: %d", userID)
-	})
 	handler := api.HandlerFromMux(strictHandler, mux)
 	handler = middleware.AuthMiddleware([]byte(jwtSecret), handler)
 
