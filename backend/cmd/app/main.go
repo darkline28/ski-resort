@@ -11,6 +11,7 @@ import (
 	"github.com/darkline28/ski-resort/backend/internal/auth"
 	"github.com/darkline28/ski-resort/backend/internal/auth/api"
 	"github.com/darkline28/ski-resort/backend/internal/database"
+	"github.com/darkline28/ski-resort/backend/internal/middleware"
 	"github.com/darkline28/ski-resort/backend/internal/users"
 	"github.com/joho/godotenv"
 )
@@ -55,6 +56,7 @@ func main() {
 
 	mux := http.NewServeMux()
 	handler := api.HandlerFromMux(strictHandler, mux)
+	handler = middleware.AuthMiddleware([]byte(jwtSecret), handler)
 
 	log.Println("PostgreSQL connected successfully")
 	log.Println("HTTP server started on :8080")
