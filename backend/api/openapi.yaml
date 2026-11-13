@@ -8,7 +8,7 @@ paths:
   /auth/register:
     post:
       tags:
-        - auth
+        - Аuth
       operationId: registerUser
       summary: Регистрация пользователя
       requestBody:
@@ -87,7 +87,7 @@ paths:
   /auth/login:
     post:
       tags:
-        - auth
+        - Аuth
       operationId: loginUser
       summary: Вход пользователя
       requestBody:
@@ -140,7 +140,157 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+  
+  /equipment:
+    get:
+      tags:
+        - Equipment
+      summary: Получить список снаряжения
+      operationId: listEquipment
+      parameters:
+        - name: category
+          in: query
+          required: false
+          description: Фильтрация по категории снаряжения
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Список моделей снаряжения
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Equipment'
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  
+  /equipment/{id}:
+    get:
+      tags:
+        - Equipment
+      summary: Получить снаряжение по id
+      operationId: getEquipmentByID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Снаряжение по id
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Equipment'
+        '400':
+          description: Ошибка в запросе
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Не найдено
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              
+  /equipment/categories:
+    get:
+      tags: 
+        - Equipment
+      summary: Получить категории снаряжения
+      operationId: getEquipmentCategories
+      responses:
+        '200':
+          description: Список категорий снаряжения
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/EquipmentCategory'
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /equipment/sets:
+    get:
+      tags:
+        - Equipment
+      summary: Получить список комплектов снаряжения
+      operationId: getEquipmentSets
+      responses:
+        '200':
+          description: Список комплектов снаряжения
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/EquipmentSet'
+        '500':
+          description: Внутреняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+            
+  /equipment/sets/{id}:
+    get:
+      tags:
+        - Equipment
+      summary: Получить комплект снаряжения по id
+      operationId: getEquipmentSetByID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Комплект снаряжения по id
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EquipmentSetDetail'
+        '400':
+          description: Ошибка в запросе
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Не найдено
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         
+
 
 components:
   schemas:
@@ -154,4 +304,97 @@ components:
           type: string
         message:
           type: string
+
+    Equipment:
+      type: object
+      required:
+        - id
+        - name
+        - category
+        - price_per_hour
+        - quantity
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        category:
+          type: string
+        price_per_hour:
+          type: integer
+        quantity:
+          type: integer
+        image_url:
+          type: string
+        description:
+          type: string
+
+    EquipmentCategory:
+      type: object
+      required:
+        - id
+        - name
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+
+    EquipmentSet:
+      type: object
+      required:
+        - id
+        - name
+        - sport_type
+        - age_group
+        - price_per_hour
+        - is_active
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        description:
+          type: string
+        sport_type:
+          type: string
+          enum:
+            - ski
+            - snowboard
+        age_group:
+          type: string
+          enum:
+            - adult
+            - child
+        price_per_hour:
+          type: integer
+        is_active:
+          type: boolean
+
+    EquipmentSetItem:
+      type: object
+      required:
+        - category_id
+        - category_name
+        - quantity
+      properties:
+        category_id:
+          type: integer
+        category_name:
+          type: string
+        quantity:
+          type: integer
+
+    EquipmentSetDetail:
+      allOf:
+        - $ref: '#/components/schemas/EquipmentSet'
+        - type: object
+          required:
+            - items
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/EquipmentSetItem'
+
     
