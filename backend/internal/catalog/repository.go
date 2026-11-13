@@ -22,8 +22,9 @@ func (r *PostgresRepository) ListEquipment(ctx context.Context, category *string
 				ON e.category_id = c.id
 				LEFT JOIN equipment_units eu
 				ON e.id = eu.equipment_id
-				WHERE $1::text IS NULL OR c.name = $1 
-				GROUP BY e.id, c.name`
+				WHERE $1::text IS NULL OR c.code = $1 
+				GROUP BY e.id, c.name
+				ORDER BY e.id`
 
 	rows, err := r.pool.Query(ctx, query, category)
 	if err != nil {
