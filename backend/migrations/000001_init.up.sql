@@ -24,7 +24,7 @@ create table services(
 	name VARCHAR(100) not null,
 	description TEXT,
 	duration_minutes INTEGER not null CHECK(duration_minutes > 0),
-	price NUMERIC(10,2) not null CHECK(price >= 0),
+	price INTEGER not null CHECK(price >= 0),
 	is_active BOOLEAN not null default true
 );
 
@@ -37,14 +37,11 @@ create table instructor_services (
 
 CREATE TABLE instructor_schedules (
     id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-
     instructor_id INTEGER NOT NULL REFERENCES instructors(id),
-
     starts_at TIMESTAMPTZ NOT NULL,
     ends_at TIMESTAMPTZ NOT NULL,
-
     CHECK (ends_at > starts_at),
-    
+
     CONSTRAINT instructor_schedules_no_overlap
         EXCLUDE USING gist (
             instructor_id WITH =,
@@ -66,7 +63,7 @@ CREATE TABLE lesson_bookings (
             'completed',
             'no_show'
         )),
-    total_price NUMERIC(10,2) NOT NULL
+    total_price INTEGER NOT NULL
         CHECK (total_price >= 0),
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     CHECK (ends_at > starts_at),
@@ -81,9 +78,7 @@ CREATE TABLE lesson_bookings (
 
 CREATE TABLE equipment_categories (
     id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    name VARCHAR(100) NOT NULL UNIQUE,
-    price_per_hour NUMERIC(10,2) NOT NULL
-        CHECK (price_per_hour >= 0)
+    name VARCHAR(100) NOT NULL UNIQUE
 );
 
 CREATE TABLE equipment (
@@ -91,7 +86,8 @@ CREATE TABLE equipment (
     category_id INTEGER NOT NULL REFERENCES equipment_categories(id),
     name VARCHAR(100) NOT NULL,
     description TEXT,
-    image_url VARCHAR(500)
+    image_url VARCHAR(500),
+    price_per_hour INTEGER NOT NULL CHECK (price_per_hour >= 0)
 );
 
 CREATE TABLE equipment_units (
@@ -116,7 +112,7 @@ CREATE TABLE equipment_sets (
         CHECK (sport_type IN ('ski', 'snowboard')),
     age_group VARCHAR(20) NOT NULL
         CHECK (age_group IN ('adult', 'child')),
-    price_per_hour NUMERIC(10,2) NOT NULL
+    price_per_hour INTEGER NOT NULL
         CHECK (price_per_hour >= 0),
     is_active BOOLEAN NOT NULL DEFAULT TRUE
 );
@@ -147,7 +143,7 @@ CREATE TABLE equipment_bookings (
             'returned',
             'cancelled'
         )),
-    total_price NUMERIC(10,2) NOT NULL
+    total_price INTEGER NOT NULL
         CHECK (total_price >= 0),
     CHECK (ends_at > starts_at)
 );
@@ -158,7 +154,7 @@ CREATE TABLE booked_equipment_sets (
         REFERENCES equipment_bookings(id),
     equipment_set_id INTEGER NOT NULL
         REFERENCES equipment_sets(id),
-    total_price NUMERIC(10,2) NOT NULL
+    total_price INTEGER NOT NULL
         CHECK (total_price >= 0),
     UNIQUE (id, booking_id)
 );
@@ -168,7 +164,7 @@ CREATE TABLE equipment_booking_items (
     booking_id INTEGER NOT NULL REFERENCES equipment_bookings(id),
     equipment_unit_id INTEGER NOT NULL REFERENCES equipment_units(id),
     booked_set_id INTEGER,
-    item_total_price NUMERIC(10,2) CHECK (item_total_price >= 0),
+    item_total_price INTEGER CHECK (item_total_price >= 0),
     UNIQUE (booking_id, equipment_unit_id),
     FOREIGN KEY (booked_set_id, booking_id)
         REFERENCES booked_equipment_sets(id, booking_id),

@@ -9,7 +9,9 @@ import (
 	"time"
 
 	"github.com/darkline28/ski-resort/backend/internal/auth"
-	"github.com/darkline28/ski-resort/backend/internal/auth/api"
+	authapi "github.com/darkline28/ski-resort/backend/internal/auth/api"
+	"github.com/darkline28/ski-resort/backend/internal/catalog"
+	catalogapi "github.com/darkline28/ski-resort/backend/internal/catalog/api"
 	"github.com/darkline28/ski-resort/backend/internal/database"
 	"github.com/darkline28/ski-resort/backend/internal/middleware"
 	"github.com/darkline28/ski-resort/backend/internal/users"
@@ -52,11 +54,19 @@ func main() {
 	authService := auth.NewService(userRepo, []byte(jwtSecret), tokenTTL)
 	authHandler := auth.NewHandler(authService)
 
-	strictHandler := api.NewStrictHandler(authHandler, nil)
+	catalogRepo := catalog.NewPostgresRepository(pool)
+	catalogService := catalog.NewEquipmentService(catalogRepo)
+	catalogHandler := catalog.NewHandler(catalogService)
+
+	authStrictHandler := authapi.NewStrictHandler(authHandler, nil)
+	catalogStrictHandler := catalogapi.NewStrictHandler(catalogHandler, nil)
 
 	mux := http.NewServeMux()
-	handler := api.HandlerFromMux(strictHandler, mux)
-	handler = middleware.AuthMiddleware([]byte(jwtSecret), handler)
+
+	authapi.HandlerFromMux(authStrictHandler, mux)
+	catalogapi.HandlerFromMux(catalogStrictHandler, mux)
+
+	handler := middleware.AuthMiddleware([]byte(jwtSecret), mux)
 
 	log.Println("PostgreSQL connected successfully")
 	log.Println("HTTP server started on :8080")
