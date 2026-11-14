@@ -1,6 +1,0 @@
-<script setup lang="ts">
-import {ref,onMounted} from 'vue';import {bookingApi} from '@/api';import {auth} from '@/stores/auth';import type {Booking} from '@/types';
-const bookings=ref<Booking[]>([]),error=ref(''),loading=ref(true);async function load(){loading.value=true;error.value='';try{bookings.value=await bookingApi.my()}catch(e){error.value='Не удалось загрузить'}finally{loading.value=false}}
-async function cancel(id:number){if(!confirm('Отменить запись?'))return;try{await bookingApi.cancel(id);await load()}catch(e){error.value='Не удалось загрузить'}}
-onMounted(load);
-</script><template><div class="container section section--top"><h1 class="h1">Личный кабинет</h1><p class="lead">Здравствуйте, {{auth.user?.name}}! Здесь ваши бронирования.</p><div class="card panel"><h2 class="h3">Мои записи</h2><p v-if="loading">Загрузка...</p><p v-else-if="error" class="state-error">{{error}}</p><p v-else-if="!bookings.length">Записей пока нет.</p><div v-for="b in bookings" :key="b.id" class="booking-line"><div><b>{{b.title}}</b><p class="muted">{{new Date(b.start).toLocaleString('ru-RU')}} · {{b.status}} · {{b.total}} ₽</p></div><button v-if="b.status==='pending'" class="btn btn--outline btn--sm" @click="cancel(b.id)">Отменить</button></div></div></div></template>
