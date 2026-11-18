@@ -6,6 +6,8 @@ import (
 	"log/slog"
 
 	"github.com/darkline28/ski-resort/backend/internal/auth/api"
+	"github.com/darkline28/ski-resort/backend/internal/middleware"
+	"github.com/oapi-codegen/runtime/types"
 )
 
 type Handler struct {
@@ -44,9 +46,17 @@ func (h *Handler) RegisterUser(ctx context.Context, request api.RegisterUserRequ
 		"user_id", user.ID,
 		"email", user.Email,
 	)
-	return api.RegisterUser201JSONResponse{Id: user.ID, Email: user.Email, Name: user.Name, Role: api.RegisterUser201JSONResponseBodyRole(user.Role),
-		AccessToken: token, TokenType: api.RegisterUser201JSONResponseBodyTokenType("Bearer")}, nil
+	response := api.RegisterUser201JSONResponse{
+		AccessToken: token,
+		TokenType:   api.RegisterUser201JSONResponseBodyTokenType("Bearer"),
+	}
+	response.User.Id = user.ID
+	response.User.Email = user.Email
+	response.User.Name = user.Name
+	response.User.Phone = user.Phone
+	response.User.Role = api.RegisterUser201JSONResponseBodyUserRole(user.Role)
 
+	return response, nil
 }
 
 // LoginUser implements [api.StrictServerInterface].
@@ -72,6 +82,45 @@ func (h *Handler) LoginUser(ctx context.Context, request api.LoginUserRequestObj
 
 	slog.InfoContext(ctx, "user logged in", "user_id", user.ID)
 
-	return api.LoginUser200JSONResponse{AccessToken: token, TokenType: api.LoginUser200JSONResponseBodyTokenType("Bearer")}, nil
+	response := api.LoginUser200JSONResponse{
+		AccessToken: token,
+		TokenType:   api.LoginUser200JSONResponseBodyTokenType("Bearer"),
+	}
 
+	response.User.Id = user.ID
+	response.User.Name = user.Name
+	response.User.Email = user.Email
+	response.User.Role = api.LoginUser200JSONResponseBodyUserRole(user.Role)
+
+	if user.Phone != "" {
+		response.User.Phone = &user.Phone
+	}
+
+	return response, nil
+}
+
+// GetUser implements [api.StrictServerInterface].
+func (h *Handler) GetUser(ctx context.Context, request api.GetUserRequestObject) (api.GetUserResponseObject, error) {
+	userID, ok := middleware.UserIDFromContext(ctx)
+	if !ok {
+		return api.GetUser401JSONResponse{Error: "unauthorized", Message: "Пользователь не авторизован"}, nil
+	}
+
+	user, err := h.service.GetCurrentUser(ctx, userID)
+	if err != nil {
+		if errors.Is(err, ErrUserNotFound) {
+			return api.GetUser401JSONResponse{Error: "unauthorized", Message: "Пользователь не авторизован"}, nil
+		}
+		slog.ErrorContext(ctx, "getUser failed", "error", err)
+		return api.GetUser500JSONResponse{Error: "internal_error", Message: "Внутренняя ошибка сервера"}, nil
+	}
+	response := api.GetUser200JSONResponse{
+		Id:    user.ID,
+		Name:  user.Name,
+		Email: types.Email(user.Email),
+		Phone: user.Phone,
+		Role:  api.GetUser200JSONResponseBodyRole(user.Role),
+	}
+
+	return response, nil
 }

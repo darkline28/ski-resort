@@ -21,7 +21,8 @@ func UserIDFromContext(ctx context.Context) (int, bool) {
 func AuthMiddleware(jwtSecret []byte, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if (r.Method == http.MethodPost && (r.URL.Path == "/auth/register" || r.URL.Path == "/auth/login")) ||
-			(r.Method == http.MethodGet && strings.HasPrefix(r.URL.Path, "/equipment")) {
+			(r.Method == http.MethodGet && (strings.HasPrefix(r.URL.Path, "/equipment") || (strings.HasPrefix(r.URL.Path, "/instructors") &&
+				r.URL.Path != "/instructors/me/bookings"))) {
 			next.ServeHTTP(w, r)
 			return
 		}

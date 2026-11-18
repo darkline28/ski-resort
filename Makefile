@@ -24,3 +24,9 @@ gen:
 		-config api/oapi-codegen.yaml \
 		-include-tags auth \
 		api/openapi.yaml > internal/auth/api/api.gen.go
+
+gen-instructors:
+	cd backend && oapi-codegen \
+		-config api/oapi-codegen.yaml \
+		-include-tags Instructor \
+		api/openapi.yaml > internal/instructors/api/api.gen.go

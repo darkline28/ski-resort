@@ -13,6 +13,7 @@ create table users (
 create table instructors (
 	id INTEGER generated always as identity primary key,
 	user_id INTEGER not null unique references users(id),
+    image_url VARCHAR(500),
 	specialization VARCHAR(200) not null,
 	description TEXT,
 	experience_years INTEGER NOT NULL CHECK (experience_years >= 0),
