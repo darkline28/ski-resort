@@ -31,21 +31,42 @@ func (e LoginUser200JSONResponseBodyTokenType) Valid() bool {
 	}
 }
 
-// Defines values for RegisterUser201JSONResponseBodyRole.
+// Defines values for LoginUser200JSONResponseBodyUserRole.
 const (
-	Admin      RegisterUser201JSONResponseBodyRole = "admin"
-	Client     RegisterUser201JSONResponseBodyRole = "client"
-	Instructor RegisterUser201JSONResponseBodyRole = "instructor"
+	LoginUser200JSONResponseBodyUserRoleAdmin      LoginUser200JSONResponseBodyUserRole = "admin"
+	LoginUser200JSONResponseBodyUserRoleClient     LoginUser200JSONResponseBodyUserRole = "client"
+	LoginUser200JSONResponseBodyUserRoleInstructor LoginUser200JSONResponseBodyUserRole = "instructor"
 )
 
-// Valid indicates whether the value is a known member of the RegisterUser201JSONResponseBodyRole enum.
-func (e RegisterUser201JSONResponseBodyRole) Valid() bool {
+// Valid indicates whether the value is a known member of the LoginUser200JSONResponseBodyUserRole enum.
+func (e LoginUser200JSONResponseBodyUserRole) Valid() bool {
 	switch e {
-	case Admin:
+	case LoginUser200JSONResponseBodyUserRoleAdmin:
 		return true
-	case Client:
+	case LoginUser200JSONResponseBodyUserRoleClient:
 		return true
-	case Instructor:
+	case LoginUser200JSONResponseBodyUserRoleInstructor:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for GetUser200JSONResponseBodyRole.
+const (
+	GetUser200JSONResponseBodyRoleAdmin      GetUser200JSONResponseBodyRole = "admin"
+	GetUser200JSONResponseBodyRoleClient     GetUser200JSONResponseBodyRole = "client"
+	GetUser200JSONResponseBodyRoleInstructor GetUser200JSONResponseBodyRole = "instructor"
+)
+
+// Valid indicates whether the value is a known member of the GetUser200JSONResponseBodyRole enum.
+func (e GetUser200JSONResponseBodyRole) Valid() bool {
+	switch e {
+	case GetUser200JSONResponseBodyRoleAdmin:
+		return true
+	case GetUser200JSONResponseBodyRoleClient:
+		return true
+	case GetUser200JSONResponseBodyRoleInstructor:
 		return true
 	default:
 		return false
@@ -67,6 +88,27 @@ func (e RegisterUser201JSONResponseBodyTokenType) Valid() bool {
 	}
 }
 
+// Defines values for RegisterUser201JSONResponseBodyUserRole.
+const (
+	RegisterUser201JSONResponseBodyUserRoleAdmin      RegisterUser201JSONResponseBodyUserRole = "admin"
+	RegisterUser201JSONResponseBodyUserRoleClient     RegisterUser201JSONResponseBodyUserRole = "client"
+	RegisterUser201JSONResponseBodyUserRoleInstructor RegisterUser201JSONResponseBodyUserRole = "instructor"
+)
+
+// Valid indicates whether the value is a known member of the RegisterUser201JSONResponseBodyUserRole enum.
+func (e RegisterUser201JSONResponseBodyUserRole) Valid() bool {
+	switch e {
+	case RegisterUser201JSONResponseBodyUserRoleAdmin:
+		return true
+	case RegisterUser201JSONResponseBodyUserRoleClient:
+		return true
+	case RegisterUser201JSONResponseBodyUserRoleInstructor:
+		return true
+	default:
+		return false
+	}
+}
+
 // Error defines model for Error.
 type Error struct {
 	Error   string `json:"error"`
@@ -82,6 +124,12 @@ type LoginUserJSONBody struct {
 // LoginUser200JSONResponseBodyTokenType defines parameters for LoginUser.
 type LoginUser200JSONResponseBodyTokenType string
 
+// LoginUser200JSONResponseBodyUserRole defines parameters for LoginUser.
+type LoginUser200JSONResponseBodyUserRole string
+
+// GetUser200JSONResponseBodyRole defines parameters for GetUser.
+type GetUser200JSONResponseBodyRole string
+
 // RegisterUserJSONBody defines parameters for RegisterUser.
 type RegisterUserJSONBody struct {
 	Email    openapi_types.Email `json:"email"`
@@ -90,11 +138,11 @@ type RegisterUserJSONBody struct {
 	Phone    string              `json:"phone"`
 }
 
-// RegisterUser201JSONResponseBodyRole defines parameters for RegisterUser.
-type RegisterUser201JSONResponseBodyRole string
-
 // RegisterUser201JSONResponseBodyTokenType defines parameters for RegisterUser.
 type RegisterUser201JSONResponseBodyTokenType string
+
+// RegisterUser201JSONResponseBodyUserRole defines parameters for RegisterUser.
+type RegisterUser201JSONResponseBodyUserRole string
 
 // LoginUserJSONRequestBody defines body for LoginUser for application/json ContentType.
 type LoginUserJSONRequestBody LoginUserJSONBody
@@ -107,6 +155,9 @@ type ServerInterface interface {
 	// LoginUser Вход пользователя
 	// (POST /auth/login)
 	LoginUser(w http.ResponseWriter, r *http.Request)
+	// GetUser Получение текущего пользователя
+	// (GET /auth/me)
+	GetUser(w http.ResponseWriter, r *http.Request)
 	// RegisterUser Регистрация пользователя
 	// (POST /auth/register)
 	RegisterUser(w http.ResponseWriter, r *http.Request)
@@ -126,6 +177,20 @@ func (siw *ServerInterfaceWrapper) LoginUser(w http.ResponseWriter, r *http.Requ
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.LoginUser(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetUser operation middleware
+func (siw *ServerInterfaceWrapper) GetUser(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetUser(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -271,6 +336,7 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/auth/register", wrapper.RegisterUser)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/auth/login", wrapper.LoginUser)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/auth/me", wrapper.GetUser)
 
 	return m
 }
@@ -286,6 +352,13 @@ type LoginUserResponseObject interface {
 type LoginUser200JSONResponse struct {
 	AccessToken string                                `json:"access_token"`
 	TokenType   LoginUser200JSONResponseBodyTokenType `json:"token_type"`
+	User        struct {
+		Email string                               `json:"email"`
+		Id    int                                  `json:"id"`
+		Name  string                               `json:"name"`
+		Phone *string                              `json:"phone,omitempty"`
+		Role  LoginUser200JSONResponseBodyUserRole `json:"role"`
+	} `json:"user"`
 }
 
 func (response LoginUser200JSONResponse) VisitLoginUserResponse(w http.ResponseWriter) error {
@@ -342,6 +415,61 @@ func (response LoginUser500JSONResponse) VisitLoginUserResponse(w http.ResponseW
 	return err
 }
 
+type GetUserRequestObject struct {
+}
+
+type GetUserResponseObject interface {
+	VisitGetUserResponse(w http.ResponseWriter) error
+}
+
+type GetUser200JSONResponse struct {
+	Email openapi_types.Email            `json:"email"`
+	Id    int                            `json:"id"`
+	Name  string                         `json:"name"`
+	Phone string                         `json:"phone"`
+	Role  GetUser200JSONResponseBodyRole `json:"role"`
+}
+
+func (response GetUser200JSONResponse) VisitGetUserResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetUser401JSONResponse Error
+
+func (response GetUser401JSONResponse) VisitGetUserResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetUser500JSONResponse Error
+
+func (response GetUser500JSONResponse) VisitGetUserResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type RegisterUserRequestObject struct {
 	Body *RegisterUserJSONRequestBody
 }
@@ -352,11 +480,14 @@ type RegisterUserResponseObject interface {
 
 type RegisterUser201JSONResponse struct {
 	AccessToken string                                   `json:"access_token"`
-	Email       string                                   `json:"email"`
-	Id          int                                      `json:"id"`
-	Name        string                                   `json:"name"`
-	Role        RegisterUser201JSONResponseBodyRole      `json:"role"`
 	TokenType   RegisterUser201JSONResponseBodyTokenType `json:"token_type"`
+	User        struct {
+		Email string                                  `json:"email"`
+		Id    int                                     `json:"id"`
+		Name  string                                  `json:"name"`
+		Phone string                                  `json:"phone"`
+		Role  RegisterUser201JSONResponseBodyUserRole `json:"role"`
+	} `json:"user"`
 }
 
 func (response RegisterUser201JSONResponse) VisitRegisterUserResponse(w http.ResponseWriter) error {
@@ -418,6 +549,9 @@ type StrictServerInterface interface {
 	// LoginUser Вход пользователя
 	// (POST /auth/login)
 	LoginUser(ctx context.Context, request LoginUserRequestObject) (LoginUserResponseObject, error)
+	// GetUser Получение текущего пользователя
+	// (GET /auth/me)
+	GetUser(ctx context.Context, request GetUserRequestObject) (GetUserResponseObject, error)
 	// RegisterUser Регистрация пользователя
 	// (POST /auth/register)
 	RegisterUser(ctx context.Context, request RegisterUserRequestObject) (RegisterUserResponseObject, error)
@@ -486,6 +620,30 @@ func (sh *strictHandler) LoginUser(w http.ResponseWriter, r *http.Request) {
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(LoginUserResponseObject); ok {
 		if err := validResponse.VisitLoginUserResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetUser operation middleware
+func (sh *strictHandler) GetUser(w http.ResponseWriter, r *http.Request) {
+	var request GetUserRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetUser(ctx, request.(GetUserRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetUser")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetUserResponseObject); ok {
+		if err := validResponse.VisitGetUserResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

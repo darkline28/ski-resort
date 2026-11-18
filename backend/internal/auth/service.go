@@ -20,6 +20,7 @@ import (
 type UserRepository interface {
 	Create(ctx context.Context, user users.User) (int, error)
 	GetByEmail(ctx context.Context, email string) (users.User, error)
+	GetByID(ctx context.Context, id int) (users.User, error)
 }
 
 type Service struct {
@@ -144,4 +145,19 @@ func (s *Service) Login(ctx context.Context, email, password string) (users.User
 	}
 
 	return user, token, nil
+}
+
+var ErrUserNotFound = errors.New("user not found")
+
+func (s *Service) GetCurrentUser(ctx context.Context, userID int) (users.User, error) {
+	user, err := s.repo.GetByID(ctx, userID)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return users.User{}, ErrUserNotFound
+		}
+		return users.User{}, err
+	}
+
+	return user, nil
+
 }

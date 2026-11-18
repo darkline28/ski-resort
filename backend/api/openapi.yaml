@@ -8,7 +8,7 @@ paths:
   /auth/register:
     post:
       tags:
-        - Аuth
+        - auth
       operationId: registerUser
       summary: Регистрация пользователя
       requestBody:
@@ -40,31 +40,39 @@ paths:
               schema:
                 type: object
                 required:
-                  - id
-                  - name
-                  - email
-                  - role
                   - access_token
                   - token_type
+                  - user
                 properties:
-                  id:
-                    type: integer
-                  name:
-                    type: string
-                  email:
-                    type: string
-                  role:
-                    type: string
-                    enum:
-                      - client
-                      - instructor
-                      - admin
                   access_token:
                     type: string
                   token_type:
                     type: string
                     enum:
-                    - Bearer
+                      - Bearer
+                  user:
+                    type: object
+                    required:
+                      - id
+                      - name
+                      - email
+                      - phone
+                      - role
+                    properties:
+                      id:
+                        type: integer
+                      name:
+                        type: string
+                      email:
+                        type: string
+                      phone:
+                        type: string
+                      role:
+                        type: string
+                        enum:
+                          - client
+                          - instructor
+                          - admin
         '400':
           description: "Некорректные данные запроса"
           content:
@@ -87,7 +95,7 @@ paths:
   /auth/login:
     post:
       tags:
-        - Аuth
+        - auth
       operationId: loginUser
       summary: Вход пользователя
       requestBody:
@@ -115,6 +123,7 @@ paths:
                 required:
                   - access_token
                   - token_type
+                  - user
                 properties:
                   access_token:
                     type: string
@@ -122,6 +131,28 @@ paths:
                     type: string
                     enum:
                       - Bearer
+                  user:
+                    type: object
+                    required:
+                      - id
+                      - name
+                      - email
+                      - role
+                    properties:
+                      id:
+                        type: integer
+                      name:
+                        type: string
+                      email:
+                        type: string
+                      phone:
+                        type: string
+                      role:
+                        type: string
+                        enum:
+                          - client
+                          - instructor
+                          - admin
         '400':
           description: "Некорректные данные"
           content:
@@ -136,6 +167,56 @@ paths:
                 $ref: '#/components/schemas/Error'
         '500':
           description: "Ошибка сервера"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+            
+  /auth/me:
+    get:
+      tags:
+        - auth
+      summary: Получение текущего пользователя
+      operationId: GetUser
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Данные авторизованного пользователя успешно получены
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - id
+                  - name
+                  - email
+                  - phone
+                  - role
+                properties:
+                  id:
+                    type: integer
+                  name:
+                    type: string
+                  email:
+                    type: string
+                    format: email
+                  phone:
+                    type: string
+                  role:
+                    type: string
+                    enum:
+                      - client
+                      - instructor
+                      - admin
+        '401':
+          description: Пользователь не авторизирован
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Внутренняя ошибка сервера
           content:
             application/json:
               schema:
@@ -246,7 +327,7 @@ paths:
                 items:
                   $ref: '#/components/schemas/EquipmentSet'
         '500':
-          description: Внутреняя ошибка сервера
+          description: Внутренняя ошибка сервера
           content:
             application/json:
               schema:
@@ -289,10 +370,167 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+            
+  /instructors:
+    get:
+      tags:
+        - Instructor
+      summary: "Получить список всех инструкторов"
+      operationId: listInstructors
+      responses:
+        '200':
+          description: Список инструкторов
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Instructors'
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          
+  /instructors/{id}:
+    get:
+      tags: 
+      - Instructor
+      summary: Получить информацию об инструкторе
+      operationId: getInstructorByID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Успешное получение инструктора
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Instructors'
+        '404':
+          description: Инструктор не найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '400':
+          description: Ошибка в запросе
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         
+  /instructors/{id}/schedule:
+    get:
+      tags:
+        - Instructor
+      summary: Получить расписание инструктора по id
+      operationId: getInstructorScheduleByID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: date
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date 
+      responses:
+        '200':
+          description: Успешное получение расписание инструктора
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InstructorScheduleResponse'
+        '404':
+          description: Инструктор не найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '400':
+          description: Ошибка в запросе
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /instructors/me/bookings:
+    get:
+      tags: 
+      - Instructor
+      summary: Получить бронирования занятий текущего инструктора
+      operationId: getMyInstructorBookings
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: date
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Успешное получение рассписания
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/InstructorBooking'
+        '401':
+          description: Пользователь не авторизован
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '400':
+          description: Некорректный формат даты
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Доступ запрещён. Пользователь не является инструктором
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
 
 
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
   schemas:
     Error:
       type: object
@@ -397,4 +635,112 @@ components:
               items:
                 $ref: '#/components/schemas/EquipmentSetItem'
 
-    
+    Instructors:
+      type: object
+      required:
+        - id
+        - name
+        - specialization
+        - experience_years
+        - is_active
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        specialization:
+          type: string
+        description:
+          type: string
+          nullable: true
+        experience_years:
+          type: integer
+        is_active:
+          type: boolean
+        image_url:
+          type: string
+          nullable: true
+
+    InstructorSchedule:
+      type: object
+      required:
+        - id
+        - starts_at
+        - ends_at
+      properties:
+        id:
+          type: integer
+        starts_at:
+          type: string
+          format: date-time
+        ends_at:
+          type: string
+          format: date-time
+      
+    BookedInterval:
+      type: object
+      required:
+        - starts_at
+        - ends_at
+      properties:
+        starts_at:
+          type: string
+          format: date-time
+        ends_at:
+          type: string
+          format: date-time
+        
+    InstructorScheduleResponse:
+      type: object
+      required:
+        - instructor_id
+        - date
+        - schedule
+        - booked_intervals
+      properties:
+        instructor_id:
+          type: integer
+        date:
+          type: string
+          format: date
+        schedule:
+          type: array
+          items:
+            $ref: '#/components/schemas/InstructorSchedule'
+        booked_intervals:
+          type: array
+          items:
+            $ref: '#/components/schemas/BookedInterval'
+          
+    InstructorBooking:
+      type: object
+      required:
+        - id
+        - client_name
+        - service_name
+        - starts_at
+        - ends_at
+        - status
+      properties:
+        id:
+          type: integer
+        client_name:
+          type: string
+        service_name:
+          type: string
+        starts_at:
+          type: string
+          format: date-time
+        ends_at:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum:
+            - confirmed
+            - cancelled
+            - completed
+            - no_show
+
+        
+

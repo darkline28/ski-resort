@@ -31,17 +31,36 @@ func (r *PostgresRepository) Create(ctx context.Context, user User) (int, error)
 }
 
 func (r *PostgresRepository) GetByEmail(ctx context.Context, email string) (User, error) {
-	query := `SELECT id, password_hash FROM users WHERE email = $1`
+	query := `SELECT id, name, email, phone, role, password_hash
+		FROM users
+		WHERE email = $1
+	`
 
-	var id int
-	var passwordHash string
+	var user User
 
-	row := r.pool.QueryRow(ctx, query, email)
-
-	err := row.Scan(&id, &passwordHash)
+	err := r.pool.QueryRow(ctx, query, email).Scan(
+		&user.ID,
+		&user.Name,
+		&user.Email,
+		&user.Phone,
+		&user.Role,
+		&user.PasswordHash,
+	)
 	if err != nil {
 		return User{}, err
 	}
-	return User{ID: id, Email: email, PasswordHash: passwordHash}, nil
 
+	return user, nil
+
+}
+
+func (r *PostgresRepository) GetByID(ctx context.Context, id int) (User, error) {
+	query := `SELECT id, name, email, phone, role FROM users WHERE id = $1`
+	row := r.pool.QueryRow(ctx, query, id)
+	var user User
+	err := row.Scan(&user.ID, &user.Name, &user.Email, &user.Phone, &user.Role)
+	if err != nil {
+		return User{}, err
+	}
+	return user, nil
 }

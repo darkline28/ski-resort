@@ -13,6 +13,8 @@ import (
 	"github.com/darkline28/ski-resort/backend/internal/catalog"
 	catalogapi "github.com/darkline28/ski-resort/backend/internal/catalog/api"
 	"github.com/darkline28/ski-resort/backend/internal/database"
+	"github.com/darkline28/ski-resort/backend/internal/instructors"
+	instructorsapi "github.com/darkline28/ski-resort/backend/internal/instructors/api"
 	"github.com/darkline28/ski-resort/backend/internal/middleware"
 	"github.com/darkline28/ski-resort/backend/internal/users"
 	"github.com/joho/godotenv"
@@ -58,13 +60,19 @@ func main() {
 	catalogService := catalog.NewEquipmentService(catalogRepo)
 	catalogHandler := catalog.NewHandler(catalogService)
 
+	instructorRepo := instructors.NewPostgresRepository(pool)
+	instructorsService := instructors.NewInstructorService(instructorRepo)
+	instructorsHandler := instructors.NewHandler(instructorsService)
+
 	authStrictHandler := authapi.NewStrictHandler(authHandler, nil)
 	catalogStrictHandler := catalogapi.NewStrictHandler(catalogHandler, nil)
+	instructorsStrictHandelr := instructorsapi.NewStrictHandler(instructorsHandler, nil)
 
 	mux := http.NewServeMux()
 
 	authapi.HandlerFromMux(authStrictHandler, mux)
 	catalogapi.HandlerFromMux(catalogStrictHandler, mux)
+	instructorsapi.HandlerFromMux(instructorsStrictHandelr, mux)
 
 	handler := middleware.AuthMiddleware([]byte(jwtSecret), mux)
 
