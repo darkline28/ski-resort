@@ -60,7 +60,7 @@ onMounted(load);
         </div>
 
         <button
-          v-if="b.status !== 'completed'"
+          v-if="b.status === 'confirmed'"
           class="btn btn--primary btn--sm"
           @click="complete(b.id)"
         >
