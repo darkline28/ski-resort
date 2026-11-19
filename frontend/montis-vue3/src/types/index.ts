@@ -49,7 +49,11 @@ export interface Instructor {
   isActive: boolean;
 }
 
-export type BookingStatus = 'pending' | 'paid' | 'cancelled' | 'completed';
+export type BookingStatus =
+  | 'confirmed'
+  | 'cancelled'
+  | 'completed'
+  | 'no_show';
 export type BookingType = 'lesson' | 'rental';
 
 export interface Booking {
