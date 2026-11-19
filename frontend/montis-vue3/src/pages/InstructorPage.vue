@@ -12,7 +12,7 @@ const today = new Date().toISOString().slice(0, 10);
 async function load() {
   loading.value = true;
   try {
-    bookings.value = await instructorApi.bookings(today, today);
+    bookings.value = await instructorApi.bookings(today);
   } catch (e) {
     error.value = 'Не удалось загрузить';
   } finally {
