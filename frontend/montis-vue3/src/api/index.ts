@@ -39,13 +39,32 @@ function mapEquipment(item: BackendEquipment): Equipment {
   } as Equipment;
 }
 
+type BackendInstructor = Partial<Instructor> & {
+  experience_years?: number;
+  is_active?: boolean;
+  image_url?: string | null;
+  description?: string | null;
+};
+
+function mapInstructor(item: BackendInstructor): Instructor {
+  return {
+    ...item,
+    experienceYears: item.experienceYears ?? item.experience_years ?? 0,
+    isActive: item.isActive ?? item.is_active ?? false,
+    bio: item.bio ?? item.description ?? '',
+    photoUrl: item.photoUrl ?? item.image_url ?? null,
+  } as Instructor;
+}
+
 export const catalogApi = {
   lessons: (category?: LessonCategory) => request<Lesson[]>('/lessons', { query: { category } }),
   lesson: (id: number) => request<Lesson>(`/lessons/${id}`),
   equipment: async (category?: EquipmentCategory) => (await request<BackendEquipment[]>('/equipment', { query: { category } })).map(mapEquipment),
   equipmentItem: async (id: number) => mapEquipment(await request<BackendEquipment>(`/equipment/${id}`)),
-  instructors: () => request<Instructor[]>('/instructors'),
-  instructor: (id: number) => request<Instructor>(`/instructors/${id}`),
+  instructors: async () =>
+  (await request<BackendInstructor[]>('/instructors')).map(mapInstructor),
+  instructor: async (id: number) =>
+  mapInstructor(await request<BackendInstructor>(`/instructors/${id}`)),
   slots: (instructorId: number, date: string, lessonId: number) =>
     request<Slot[]>(`/instructors/${instructorId}/slots`, { query: { date, lessonId } }),
   equipmentAvailability: (id: number, start: string, end: string, size: string) =>
