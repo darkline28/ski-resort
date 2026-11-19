@@ -91,7 +91,10 @@ export const feedbackApi = {
 
 export const instructorApi = {
   me: () => request<Instructor>('/instructor/me'),
-  bookings: (from: string, to: string) => request<Booking[]>('/instructor/bookings', { query: { from, to } }),
+  bookings: (date?: string) =>
+    request<Booking[]>('/instructors/me/bookings', {
+      query: { date },
+    }),
   schedule: (from: string, to: string) => request<ScheduleCell[]>('/instructor/schedule', { query: { from, to } }),
   addAvailability: (p: AvailabilityPayload) =>
     request<Availability>('/instructor/availability', { method: 'POST', body: p }),
