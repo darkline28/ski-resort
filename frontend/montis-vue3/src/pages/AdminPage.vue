@@ -120,10 +120,10 @@ onMounted(load);
                   :value="b.status"
                   @change="status(b.id, ($event.target as HTMLSelectElement).value as BookingStatus)"
                 >
-                  <option value="pending">Ожидает</option>
-                  <option value="paid">Оплачено</option>
-                  <option value="completed">Завершено</option>
+                  <option value="confirmed">Подтверждено</option>
                   <option value="cancelled">Отменено</option>
+                  <option value="completed">Завершено</option>
+                  <option value="no_show">Не пришёл</option>
                 </select>
               </td>
             </tr>
