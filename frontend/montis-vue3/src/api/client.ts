@@ -1,8 +1,3 @@
-/**
- * HTTP-клиент. Все запросы к бэкенду идут через request().
- * Реализация сервера находится в отдельном проекте backend-разработчика.
- */
-
 export const API_URL = (import.meta.env.VITE_API_URL || '/api').replace(/\/$/, '');
 
 const TOKEN_KEY = 'montis_token';
@@ -40,7 +35,7 @@ export interface RequestOptions {
   signal?: AbortSignal;
 }
 
-/** Обработчик 401 — выставляется AuthContext, чтобы разлогинить пользователя */
+/** Обработчик 401 */
 let onUnauthorized: (() => void) | null = null;
 export const setUnauthorizedHandler = (fn: (() => void) | null) => { onUnauthorized = fn; };
 
@@ -82,7 +77,9 @@ export async function request<T>(path: string, opts: RequestOptions = {}): Promi
   if (status >= 200 && status < 300) return data as T;
 
   const err = (data ?? {}) as { message?: string; errors?: Record<string, string> };
-  if (status === 401 && onUnauthorized) onUnauthorized();
+  if (status === 401 && path === '/auth/me' && onUnauthorized) {
+  onUnauthorized();
+}
   throw new ApiError(status, err.message || defaultMessage(status), err.errors);
 }
 
