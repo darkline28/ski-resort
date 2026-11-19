@@ -54,7 +54,9 @@ async function load() {
         ? await catalogApi.lessons(category.value === 'all' ? undefined : (category.value as any))
         : props.kind === 'equipment'
           ? await catalogApi.equipment(category.value === 'all' ? undefined : (category.value as any))
-          : await catalogApi.instructors();
+          : (await catalogApi.instructors()).sort(
+            (a, b) => Number(b.isActive) - Number(a.isActive)
+          );
   } catch (e) {
     error.value = 'Не удалось загрузить';
   } finally {
