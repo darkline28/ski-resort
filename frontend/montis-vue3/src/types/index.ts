@@ -70,14 +70,13 @@ export interface Booking {
   createdAt: string;
 }
 
-// Предварительные DTO для согласования с backend-разработчиком.
-export interface AuthResponse { token: string; user: User }
+export interface AuthResponse { access_token: string; user: User }
 export interface LoginPayload { email: string; password: string }
 export interface RegisterPayload extends LoginPayload { name: string; phone: string }
 export interface Slot { start: string; end: string }
 export interface LessonBookingPayload { lessonId: number; instructorId: number; start: string }
 export interface RentalBookingPayload { equipmentId: number; size: string; quantity: number; start: string; end: string }
-export interface PaymentPayload { /* платёжный провайдер определяется командой */ }
+export interface PaymentPayload {  }
 export interface ProfilePayload { name: string; phone: string; email: string }
 export interface PasswordPayload { current: string; next: string }
 export interface FeedbackPayload { name: string; email: string; message: string }
