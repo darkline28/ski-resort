@@ -25,13 +25,13 @@ export async function restoreSession() {
 
 export async function signIn(email: string, password: string) {
   const data = await authApi.login({ email, password });
-  tokenStorage.set(data.token);
+  tokenStorage.set(data.access_token);
   auth.user = data.user;
 }
 
 export async function signUp(name: string, phone: string, email: string, password: string) {
   const data = await authApi.register({ name, phone, email, password });
-  tokenStorage.set(data.token);
+  tokenStorage.set(data.access_token);
   auth.user = data.user;
 }
 
