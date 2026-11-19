@@ -37,15 +37,16 @@ export interface Equipment {
 
 export interface Instructor {
   id: number;
-  userId: number;
+  userId?: number;
   name: string;
-  email: string;
+  email?: string;
   specialization: string;
-  categories: LessonCategory[];
+  categories?: LessonCategory[];
   experienceYears: number;
-  pricePerHour: number;
-  bio: string;
+  pricePerHour?: number;
+  bio?: string | null;
   photoUrl?: string | null;
+  isActive: boolean;
 }
 
 export type BookingStatus = 'pending' | 'paid' | 'cancelled' | 'completed';
