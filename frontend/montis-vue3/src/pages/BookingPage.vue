@@ -36,7 +36,9 @@ async function init() {
     if (rental.value) {
       size.value = (item.value as Equipment).sizes?.[0] || '';
     } else {
-      instructors.value = await catalogApi.instructors(id);
+      instructors.value = (await catalogApi.instructors()).filter(
+        (instructor) => instructor.isActive
+      );
       instructorId.value = instructors.value[0]?.id || 0;
     }
   } catch (e) {
