@@ -56,7 +56,7 @@ onMounted(load);
         </div>
 
         <button
-          v-if="b.status === 'pending'"
+          v-if="b.status === 'confirmed'"
           class="btn btn--outline btn--sm"
           @click="cancel(b.id)"
         >
