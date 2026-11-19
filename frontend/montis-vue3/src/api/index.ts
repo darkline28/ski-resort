@@ -44,7 +44,7 @@ export const catalogApi = {
   lesson: (id: number) => request<Lesson>(`/lessons/${id}`),
   equipment: async (category?: EquipmentCategory) => (await request<BackendEquipment[]>('/equipment', { query: { category } })).map(mapEquipment),
   equipmentItem: async (id: number) => mapEquipment(await request<BackendEquipment>(`/equipment/${id}`)),
-  instructors: (lessonId?: number) => request<Instructor[]>('/instructors', { query: { lessonId } }),
+  instructors: () => request<Instructor[]>('/instructors'),
   instructor: (id: number) => request<Instructor>(`/instructors/${id}`),
   slots: (instructorId: number, date: string, lessonId: number) =>
     request<Slot[]>(`/instructors/${instructorId}/slots`, { query: { date, lessonId } }),
