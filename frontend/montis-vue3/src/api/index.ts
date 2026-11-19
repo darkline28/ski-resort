@@ -1,7 +1,3 @@
-/**
- * Все эндпоинты бэкенда в одном месте. Страницы импортируют только отсюда.
- * Согласуйте контракт с backend-разработчиком: docs/API.md.
- */
 import { request } from './client';
 import type {
   AdminStats, AuthResponse, Availability, AvailabilityPayload, Booking, BookingStatus, BookingType,
@@ -18,7 +14,6 @@ export const authApi = {
   me: () => request<User>('/auth/me'),
 };
 
-/** Backend uses snake_case; components use camelCase. */
 type BackendEquipment = Partial<Equipment> & {
   name?: string;
   price_per_hour?: number | string;
@@ -29,7 +24,6 @@ type BackendEquipment = Partial<Equipment> & {
 function equipmentImage(value?: string | null): string | null {
   if (!value) return null;
   if (/^(https?:\/\/|data:|\/images\/)/i.test(value)) return value;
-  // Backend may return just a filename or an images/... relative path.
   if (value.startsWith('images/')) return `/${value}`;
   if (value.startsWith('/')) return value;
   return `/images/${value}`;
@@ -52,10 +46,8 @@ export const catalogApi = {
   equipmentItem: async (id: number) => mapEquipment(await request<BackendEquipment>(`/equipment/${id}`)),
   instructors: (lessonId?: number) => request<Instructor[]>('/instructors', { query: { lessonId } }),
   instructor: (id: number) => request<Instructor>(`/instructors/${id}`),
-  /** Свободные интервалы считает бэкенд */
   slots: (instructorId: number, date: string, lessonId: number) =>
     request<Slot[]>(`/instructors/${instructorId}/slots`, { query: { date, lessonId } }),
-  /** Проверка наличия снаряжения на период (бэкенд) */
   equipmentAvailability: (id: number, start: string, end: string, size: string) =>
     request<{ available: number }>(`/equipment/${id}/availability`, { query: { start, end, size } }),
 };
