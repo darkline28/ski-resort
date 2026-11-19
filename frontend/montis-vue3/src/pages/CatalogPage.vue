@@ -41,7 +41,6 @@ const categories = {
     ['boots', 'Ботинки'],
     ['helmet', 'Шлемы'],
     ['goggles', 'Маски'],
-    ['kit', 'Комплекты'],
   ],
   instructors: [['all', 'Все']],
 };
