@@ -89,12 +89,35 @@ export const feedbackApi = {
   send: (p: FeedbackPayload) => request<void>('/feedback', { method: 'POST', body: p }),
 };
 
+type BackendInstructorBooking = {
+  id: number;
+  client_name: string;
+  service_name: string;
+  starts_at: string;
+  ends_at: string;
+  status: Booking['status'];
+};
+
+function mapInstructorBooking(item: BackendInstructorBooking): Booking {
+  return {
+    id: item.id,
+    clientName: item.client_name,
+    title: item.service_name,
+    start: item.starts_at,
+    end: item.ends_at,
+    status: item.status,
+  } as Booking;
+}
+
 export const instructorApi = {
   me: () => request<Instructor>('/instructor/me'),
-  bookings: (date?: string) =>
-    request<Booking[]>('/instructors/me/bookings', {
-      query: { date },
-    }),
+  bookings: async (date?: string) =>
+  (
+    await request<BackendInstructorBooking[]>(
+      '/instructors/me/bookings',
+      { query: { date } }
+    )
+  ).map(mapInstructorBooking),
   schedule: (from: string, to: string) => request<ScheduleCell[]>('/instructor/schedule', { query: { from, to } }),
   addAvailability: (p: AvailabilityPayload) =>
     request<Availability>('/instructor/availability', { method: 'POST', body: p }),
