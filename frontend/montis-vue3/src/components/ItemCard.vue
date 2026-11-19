@@ -68,7 +68,7 @@ const price = computed(() => props.item.price ?? props.item.pricePerHour);
 </button>
 
 <RouterLink
-  v-else
+  v-if="kind !== 'instructors'"
   class="btn btn--primary"
   :to="{
     path: '/booking',
@@ -80,6 +80,14 @@ const price = computed(() => props.item.price ?? props.item.pricePerHour);
 >
   {{ kind === 'equipment' ? 'Арендовать' : 'Забронировать' }}
 </RouterLink>
+
+<button
+  v-else
+  class="btn btn--primary"
+  disabled
+>
+  {{ item.isActive === false ? 'Недоступен для записи' : 'Выбрать услугу' }}
+</button>
     
   </article>
 </template>
