@@ -14,6 +14,8 @@ const props = defineProps<{
     pricePerHour?: number;
     durationMin?: number;
     specialization?: string;
+    experienceYears?: number;
+    isActive?: boolean;
   };
   kind: string;
 }>();
@@ -49,21 +51,35 @@ const price = computed(() => props.item.price ?? props.item.pricePerHour);
       {{ item.durationMin }} мин
     </div>
 
+    <div v-if="kind === 'instructors' && item.experienceYears !== undefined" class="item-card__meta">
+      Опыт работы: {{ item.experienceYears }} лет
+    </div>
+
     <div v-if="price !== undefined" class="item-card__price">
       от {{ price.toLocaleString('ru-RU') }} ₽{{ kind === 'equipment' ? '/час' : '' }}
     </div>
 
-    <RouterLink
-      class="btn btn--primary"
-      :to="{
-        path: '/booking',
-        query: {
-          type: kind === 'equipment' ? 'rental' : 'lesson',
-          id: item.id,
-        },
-      }"
-    >
-      {{ kind === 'equipment' ? 'Арендовать' : 'Забронировать' }}
-    </RouterLink>
+    <button
+  v-if="kind === 'instructors' && item.isActive === false"
+  class="btn btn--primary"
+  disabled
+>
+  Недоступен для записи
+</button>
+
+<RouterLink
+  v-else
+  class="btn btn--primary"
+  :to="{
+    path: '/booking',
+    query: {
+      type: kind === 'equipment' ? 'rental' : 'lesson',
+      id: item.id,
+    },
+  }"
+>
+  {{ kind === 'equipment' ? 'Арендовать' : 'Забронировать' }}
+</RouterLink>
+    
   </article>
 </template>
