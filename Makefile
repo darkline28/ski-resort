@@ -43,3 +43,9 @@ gen-services:
 		-config api/oapi-codegen.yaml \
 		-include-tags services \
 		api/openapi.yaml > internal/services/api/api.gen.go
+
+gen-bookings:
+	cd backend && oapi-codegen \
+		-config api/oapi-codegen.yaml \
+		-include-tags bookings \
+		api/openapi.yaml > internal/bookings/api/api.gen.go
