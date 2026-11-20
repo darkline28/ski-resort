@@ -1,3 +1,4 @@
+
 <script setup lang="ts">
 import { computed } from 'vue';
 
@@ -16,6 +17,8 @@ const props = defineProps<{
     specialization?: string;
     experienceYears?: number;
     isActive?: boolean;
+    active?: boolean;
+    category?: string;
   };
   kind: string;
 }>();
@@ -26,11 +29,37 @@ const fallbackPhoto: Record<string, string> = {
   instructors: '/images/instructor-ivan.jpg',
 };
 
-const photo = computed(
-  () => props.item.imageUrl || props.item.photoUrl || fallbackPhoto[props.kind],
+const isEquipmentSet = computed(
+  () => props.kind === 'equipment' && props.item.category === 'kit'
 );
 
-const price = computed(() => props.item.price ?? props.item.pricePerHour);
+const photo = computed(() => {
+  return (
+    props.item.imageUrl ||
+    props.item.photoUrl ||
+    fallbackPhoto[props.kind] ||
+    '/images/eq-ski.jpg'
+  );
+});
+
+const price = computed(
+  () => props.item.price ?? props.item.pricePerHour
+);
+
+const formattedPrice = computed(() => {
+  if (price.value === undefined || price.value === null) return '';
+
+  return Number(price.value).toLocaleString('ru-RU');
+});
+
+const isUnavailable = computed(() => {
+  return props.item.isActive === false || props.item.active === false;
+});
+
+const bookingQuery = computed(() => ({
+  type: props.kind === 'equipment' ? 'rental' : 'lesson',
+  id: String(props.item.id),
+}));
 </script>
 
 <template>
@@ -41,7 +70,9 @@ const price = computed(() => props.item.price ?? props.item.pricePerHour);
       :alt="item.title || item.name || 'Montis'"
     />
 
-    <h3 class="item-card__title">{{ item.title || item.name }}</h3>
+    <h3 class="item-card__title">
+      {{ item.title || item.name }}
+    </h3>
 
     <p class="item-card__text">
       {{ item.description || item.bio || item.specialization }}
@@ -51,43 +82,54 @@ const price = computed(() => props.item.price ?? props.item.pricePerHour);
       {{ item.durationMin }} мин
     </div>
 
-    <div v-if="kind === 'instructors' && item.experienceYears !== undefined" class="item-card__meta">
+    <div
+      v-if="kind === 'instructors' && item.experienceYears !== undefined"
+      class="item-card__meta"
+    >
       Опыт работы: {{ item.experienceYears }} лет
     </div>
 
-    <div v-if="price !== undefined" class="item-card__price">
-      от {{ price.toLocaleString('ru-RU') }} ₽{{ kind === 'equipment' ? '/час' : '' }}
+    <div v-if="formattedPrice" class="item-card__price">
+      от {{ formattedPrice }} ₽{{ kind === 'equipment' ? '/час' : '' }}
     </div>
 
     <button
-  v-if="kind === 'instructors' && item.isActive === false"
-  class="btn btn--primary"
-  disabled
->
-  Недоступен для записи
-</button>
+      v-if="kind === 'instructors'"
+      type="button"
+      class="btn btn--primary"
+      disabled
+    >
+      {{ isUnavailable ? 'Недоступен для записи' : 'Выбрать услугу' }}
+    </button>
 
-<RouterLink
-  v-if="kind !== 'instructors'"
-  class="btn btn--primary"
-  :to="{
-    path: '/booking',
-    query: {
-      type: kind === 'equipment' ? 'rental' : 'lesson',
-      id: item.id,
-    },
-  }"
->
-  {{ kind === 'equipment' ? 'Арендовать' : 'Забронировать' }}
-</RouterLink>
+    <button
+      v-else-if="isEquipmentSet"
+      type="button"
+      class="btn btn--primary"
+      disabled
+      title="Бронирование комплектов пока не подключено"
+    >
+      Скоро можно будет арендовать
+    </button>
 
-<button
-  v-else
-  class="btn btn--primary"
-  disabled
->
-  {{ item.isActive === false ? 'Недоступен для записи' : 'Выбрать услугу' }}
-</button>
-    
+    <button
+      v-else-if="isUnavailable"
+      type="button"
+      class="btn btn--primary"
+      disabled
+    >
+      Недоступно
+    </button>
+
+    <RouterLink
+      v-else
+      class="btn btn--primary"
+      :to="{
+        path: '/booking',
+        query: bookingQuery,
+      }"
+    >
+      {{ kind === 'equipment' ? 'Арендовать' : 'Забронировать' }}
+    </RouterLink>
   </article>
 </template>
