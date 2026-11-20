@@ -8,7 +8,21 @@ const props = defineProps<{
   kind: 'lessons' | 'equipment' | 'instructors';
 }>();
 
-type CatalogItem = Lesson | Equipment | Record<string, any>;
+type CatalogItem = Lesson | Equipment | {
+  id: number;
+  title?: string;
+  name?: string;
+  description?: string;
+  bio?: string;
+  imageUrl?: string | null;
+  photoUrl?: string | null;
+  price?: number;
+  pricePerHour?: number;
+  durationMin?: number;
+  experienceYears?: number;
+  active?: boolean;
+  isActive?: boolean;
+};
 
 type CategoryOption = {
   code: string;
