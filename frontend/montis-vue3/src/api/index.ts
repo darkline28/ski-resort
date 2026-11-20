@@ -89,6 +89,12 @@ export const catalogApi = {
   (await request<BackendInstructor[]>('/instructors')).map(mapInstructor),
   instructor: async (id: number) =>
   mapInstructor(await request<BackendInstructor>(`/instructors/${id}`)),
+  instructorServices: async (instructorId: number) =>
+  (
+    await request<BackendService[]>(
+      `/instructors/${instructorId}/services`
+    )
+  ).map(mapService),
   slots: async (instructorId: number, date: string, lessonId: number) => {
   const data = await request<
     { starts_at: string; ends_at: string }[]
