@@ -55,11 +55,19 @@ onMounted(load);
       <p v-else-if="error" class="state-error">{{ error }}</p>
       <p v-else-if="!bookings.length">Записей пока нет.</p>
 
-      <div v-for="b in bookings" :key="b.id" class="booking-line">
+      <div
+        v-for="b in bookings"
+        :key="`${b.bookingType}-${b.id}`"
+        class="booking-line"
+        >
+        
         <div>
           <b>{{ b.title }}</b>
           <p class="muted">
-            {{ new Date(b.start).toLocaleString('ru-RU') }} · {{ b.status }} · {{ b.total }} ₽
+            {{ b.bookingType === 'lesson' ? 'Занятие' : 'Аренда' }}
+            · {{ new Date(b.start).toLocaleString('ru-RU') }}
+            · {{ b.status }}
+            · {{ b.total }} ₽
           </p>
         </div>
 
