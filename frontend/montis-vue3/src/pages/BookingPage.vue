@@ -36,11 +36,34 @@ async function init() {
     if (rental.value) {
       size.value = (item.value as Equipment).sizes?.[0] || '';
     } else {
-      instructors.value = (await catalogApi.instructors()).filter(
-        (instructor) => instructor.isActive
-      );
-      instructorId.value = instructors.value[0]?.id || 0;
-    }
+  const allInstructors = (await catalogApi.instructors()).filter(
+    (instructor) => instructor.isActive
+  );
+
+  const serviceId = Number(route.query.id);
+
+  const results = await Promise.all(
+    allInstructors.map(async (instructor) => {
+      try {
+        const services = await catalogApi.instructorServices(instructor.id);
+
+        return services.some(
+          (service) => service.id === serviceId && service.active
+        )
+          ? instructor
+          : null;
+      } catch {
+        return null;
+      }
+    })
+  );
+
+  instructors.value = results.filter(
+    (instructor): instructor is Instructor => instructor !== null
+  );
+
+  instructorId.value = instructors.value[0]?.id || 0;
+}
   } catch (e) {
     error.value = 'Не удалось загрузить';
   }
