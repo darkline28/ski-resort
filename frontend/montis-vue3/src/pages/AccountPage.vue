@@ -16,7 +16,10 @@ async function load() {
   loading.value = true;
   error.value = '';
   try {
-    bookings.value = await bookingApi.my();
+    bookings.value = (await bookingApi.my()).map((booking) => ({
+  ...booking,
+  bookingType: booking.type === 'rental' ? 'rental' as const : 'lesson' as const,
+}));
   } catch (e) {
     error.value = 'Не удалось загрузить';
   } finally {
