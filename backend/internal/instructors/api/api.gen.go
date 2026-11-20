@@ -42,6 +42,12 @@ func (e InstructorBookingStatus) Valid() bool {
 	}
 }
 
+// AvailableSlot defines model for AvailableSlot.
+type AvailableSlot struct {
+	EndsAt   time.Time `json:"ends_at"`
+	StartsAt time.Time `json:"starts_at"`
+}
+
 // BookedInterval defines model for BookedInterval.
 type BookedInterval struct {
 	EndsAt   time.Time `json:"ends_at"`
@@ -93,9 +99,28 @@ type Instructors struct {
 	Specialization  string  `json:"specialization"`
 }
 
+// Service defines model for Service.
+type Service struct {
+	Description     *string `json:"description,omitempty"`
+	DurationMinutes int     `json:"duration_minutes"`
+	Id              int     `json:"id"`
+	IsActive        bool    `json:"is_active"`
+	Name            string  `json:"name"`
+	Price           int     `json:"price"`
+}
+
 // GetMyInstructorBookingsParams defines parameters for GetMyInstructorBookings.
 type GetMyInstructorBookingsParams struct {
 	Date *openapi_types.Date `form:"date,omitempty" json:"date,omitempty"`
+}
+
+// GetInstructorAvailableSlotsParams defines parameters for GetInstructorAvailableSlots.
+type GetInstructorAvailableSlotsParams struct {
+	// ServiceId ID выбранной услуги
+	ServiceId int `form:"service_id" json:"service_id"`
+
+	// Date Дата занятия по московскому времени
+	Date openapi_types.Date `form:"date" json:"date"`
 }
 
 // GetInstructorScheduleByIDParams defines parameters for GetInstructorScheduleByID.
@@ -114,9 +139,15 @@ type ServerInterface interface {
 	// GetInstructorByID Получить информацию об инструкторе
 	// (GET /instructors/{id})
 	GetInstructorByID(w http.ResponseWriter, r *http.Request, id int)
+	// GetInstructorAvailableSlots Получить доступные слоты инструктора для выбранной услуги
+	// (GET /instructors/{id}/available-slots)
+	GetInstructorAvailableSlots(w http.ResponseWriter, r *http.Request, id int, params GetInstructorAvailableSlotsParams)
 	// GetInstructorScheduleByID Получить расписание инструктора по id
 	// (GET /instructors/{id}/schedule)
 	GetInstructorScheduleByID(w http.ResponseWriter, r *http.Request, id int, params GetInstructorScheduleByIDParams)
+	// GetInstructorServices Получить услуги конкретного инструктора
+	// (GET /instructors/{id}/services)
+	GetInstructorServices(w http.ResponseWriter, r *http.Request, id int)
 }
 
 // ServerInterfaceWrapper converts contexts to parameters.
@@ -201,6 +232,61 @@ func (siw *ServerInterfaceWrapper) GetInstructorByID(w http.ResponseWriter, r *h
 	handler.ServeHTTP(w, r)
 }
 
+// GetInstructorAvailableSlots operation middleware
+func (siw *ServerInterfaceWrapper) GetInstructorAvailableSlots(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id int
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetInstructorAvailableSlotsParams
+
+	// ------------- Required query parameter "service_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, true, "service_id", r.URL.Query(), &params.ServiceId, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "service_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "service_id", Err: err})
+		}
+		return
+	}
+
+	// ------------- Required query parameter "date" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, true, "date", r.URL.Query(), &params.Date, runtime.BindQueryParameterOptions{Type: "string", Format: "date"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "date"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "date", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetInstructorAvailableSlots(w, r, id, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // GetInstructorScheduleByID operation middleware
 func (siw *ServerInterfaceWrapper) GetInstructorScheduleByID(w http.ResponseWriter, r *http.Request) {
 
@@ -234,6 +320,32 @@ func (siw *ServerInterfaceWrapper) GetInstructorScheduleByID(w http.ResponseWrit
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetInstructorScheduleByID(w, r, id, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetInstructorServices operation middleware
+func (siw *ServerInterfaceWrapper) GetInstructorServices(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id int
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetInstructorServices(w, r, id)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -366,7 +478,9 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/instructors", wrapper.ListInstructors)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/instructors/{id}", wrapper.GetInstructorByID)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/instructors/{id}/schedule", wrapper.GetInstructorScheduleByID)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/instructors/{id}/available-slots", wrapper.GetInstructorAvailableSlots)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/instructors/me/bookings", wrapper.GetMyInstructorBookings)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/instructors/{id}/services", wrapper.GetInstructorServices)
 
 	return m
 }
@@ -548,6 +662,85 @@ func (response GetInstructorByID500JSONResponse) VisitGetInstructorByIDResponse(
 	return err
 }
 
+type GetInstructorAvailableSlotsRequestObject struct {
+	Id     int `json:"id"`
+	Params GetInstructorAvailableSlotsParams
+}
+
+type GetInstructorAvailableSlotsResponseObject interface {
+	VisitGetInstructorAvailableSlotsResponse(w http.ResponseWriter) error
+}
+
+type GetInstructorAvailableSlots200JSONResponse []AvailableSlot
+
+func (response GetInstructorAvailableSlots200JSONResponse) VisitGetInstructorAvailableSlotsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetInstructorAvailableSlots400JSONResponse Error
+
+func (response GetInstructorAvailableSlots400JSONResponse) VisitGetInstructorAvailableSlotsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetInstructorAvailableSlots404JSONResponse Error
+
+func (response GetInstructorAvailableSlots404JSONResponse) VisitGetInstructorAvailableSlotsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetInstructorAvailableSlots422JSONResponse Error
+
+func (response GetInstructorAvailableSlots422JSONResponse) VisitGetInstructorAvailableSlotsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(422)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetInstructorAvailableSlots500JSONResponse Error
+
+func (response GetInstructorAvailableSlots500JSONResponse) VisitGetInstructorAvailableSlotsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type GetInstructorScheduleByIDRequestObject struct {
 	Id     int `json:"id"`
 	Params GetInstructorScheduleByIDParams
@@ -613,6 +806,70 @@ func (response GetInstructorScheduleByID500JSONResponse) VisitGetInstructorSched
 	return err
 }
 
+type GetInstructorServicesRequestObject struct {
+	Id int `json:"id"`
+}
+
+type GetInstructorServicesResponseObject interface {
+	VisitGetInstructorServicesResponse(w http.ResponseWriter) error
+}
+
+type GetInstructorServices200JSONResponse []Service
+
+func (response GetInstructorServices200JSONResponse) VisitGetInstructorServicesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetInstructorServices400JSONResponse Error
+
+func (response GetInstructorServices400JSONResponse) VisitGetInstructorServicesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetInstructorServices404JSONResponse Error
+
+func (response GetInstructorServices404JSONResponse) VisitGetInstructorServicesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetInstructorServices500JSONResponse Error
+
+func (response GetInstructorServices500JSONResponse) VisitGetInstructorServicesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
 	// ListInstructors Получить список всех инструкторов
@@ -624,9 +881,15 @@ type StrictServerInterface interface {
 	// GetInstructorByID Получить информацию об инструкторе
 	// (GET /instructors/{id})
 	GetInstructorByID(ctx context.Context, request GetInstructorByIDRequestObject) (GetInstructorByIDResponseObject, error)
+	// GetInstructorAvailableSlots Получить доступные слоты инструктора для выбранной услуги
+	// (GET /instructors/{id}/available-slots)
+	GetInstructorAvailableSlots(ctx context.Context, request GetInstructorAvailableSlotsRequestObject) (GetInstructorAvailableSlotsResponseObject, error)
 	// GetInstructorScheduleByID Получить расписание инструктора по id
 	// (GET /instructors/{id}/schedule)
 	GetInstructorScheduleByID(ctx context.Context, request GetInstructorScheduleByIDRequestObject) (GetInstructorScheduleByIDResponseObject, error)
+	// GetInstructorServices Получить услуги конкретного инструктора
+	// (GET /instructors/{id}/services)
+	GetInstructorServices(ctx context.Context, request GetInstructorServicesRequestObject) (GetInstructorServicesResponseObject, error)
 }
 
 type StrictHandlerFunc func(ctx context.Context, w http.ResponseWriter, r *http.Request, request any) (any, error)
@@ -744,6 +1007,33 @@ func (sh *strictHandler) GetInstructorByID(w http.ResponseWriter, r *http.Reques
 	}
 }
 
+// GetInstructorAvailableSlots operation middleware
+func (sh *strictHandler) GetInstructorAvailableSlots(w http.ResponseWriter, r *http.Request, id int, params GetInstructorAvailableSlotsParams) {
+	var request GetInstructorAvailableSlotsRequestObject
+
+	request.Id = id
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetInstructorAvailableSlots(ctx, request.(GetInstructorAvailableSlotsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetInstructorAvailableSlots")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetInstructorAvailableSlotsResponseObject); ok {
+		if err := validResponse.VisitGetInstructorAvailableSlotsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // GetInstructorScheduleByID operation middleware
 func (sh *strictHandler) GetInstructorScheduleByID(w http.ResponseWriter, r *http.Request, id int, params GetInstructorScheduleByIDParams) {
 	var request GetInstructorScheduleByIDRequestObject
@@ -764,6 +1054,32 @@ func (sh *strictHandler) GetInstructorScheduleByID(w http.ResponseWriter, r *htt
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(GetInstructorScheduleByIDResponseObject); ok {
 		if err := validResponse.VisitGetInstructorScheduleByIDResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetInstructorServices operation middleware
+func (sh *strictHandler) GetInstructorServices(w http.ResponseWriter, r *http.Request, id int) {
+	var request GetInstructorServicesRequestObject
+
+	request.Id = id
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetInstructorServices(ctx, request.(GetInstructorServicesRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetInstructorServices")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetInstructorServicesResponseObject); ok {
+		if err := validResponse.VisitGetInstructorServicesResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

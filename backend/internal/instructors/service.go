@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sort"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -16,6 +17,9 @@ type InstructorRepository interface {
 	GetBookedIntervals(ctx context.Context, instructorID int, date time.Time) ([]BookedInterval, error)
 	GetMyInstructorBookings(ctx context.Context, userID int, date *time.Time) ([]InstructorBooking, error)
 	GetInstructorByUserID(ctx context.Context, userID int) (int, error)
+	GetServiceDuration(ctx context.Context, serviceID int) (int, error)
+	InstructorProvidesService(ctx context.Context, instructorID, serviceID int) (bool, error)
+	GetInstructorServices(ctx context.Context, instructorID int) ([]InstructorServiceInfo, error)
 }
 
 type InstructorService struct {
@@ -99,4 +103,188 @@ func (s *InstructorService) GetMyInstructorBookings(ctx context.Context, userID 
 		return []InstructorBooking{}, err
 	}
 	return bookings, nil
+}
+
+var ErrInvalidServiceID = errors.New("invalid service id")
+var ErrInvalidDate = errors.New("date cannot be in the past")
+var ErrInstructorNotWork = errors.New("instructor not work")
+var ErrInstructorNotProvideService = errors.New("instructor not provied this service")
+var ErrServiceNotFound = errors.New("service not found")
+
+func (s *InstructorService) GetInstructorAvailableSlots(ctx context.Context, instructorID int, serviceID int, date time.Time) ([]AvailableSlot, error) {
+	if instructorID <= 0 {
+		return nil, ErrInstructorInvalidID
+	}
+	if serviceID <= 0 {
+		return nil, ErrInvalidServiceID
+	}
+
+	// Работаем по московскому времени
+	location, err := time.LoadLocation("Europe/Moscow")
+	if err != nil {
+		return nil, err
+	}
+
+	now := time.Now().In(location)
+	requestedDate := date.In(location)
+
+	todayStart := time.Date(
+		now.Year(), now.Month(), now.Day(),
+		0, 0, 0, 0, location,
+	)
+
+	requestedDayStart := time.Date(
+		requestedDate.Year(), requestedDate.Month(), requestedDate.Day(),
+		0, 0, 0, 0, location,
+	)
+
+	requestedDayEnd := requestedDayStart.AddDate(0, 0, 1)
+
+	// Запрещаем прошедшие даты
+	if requestedDayStart.Before(todayStart) {
+		return nil, ErrInvalidDate
+	}
+
+	// Проверяем инструктора
+	instructor, err := s.repo.GetInstructorByID(ctx, instructorID)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrInstructorNotFound
+		}
+		return nil, err
+	}
+
+	if !instructor.IsActive {
+		return nil, ErrInstructorNotWork
+	}
+
+	// Получаем длительность услуги
+	duration, err := s.repo.GetServiceDuration(ctx, serviceID)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrServiceNotFound
+		}
+		return nil, err
+	}
+
+	// Проверяем, оказывает ли инструктор эту услугу
+	providesService, err := s.repo.InstructorProvidesService(
+		ctx,
+		instructorID,
+		serviceID,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	if !providesService {
+		return nil, ErrInstructorNotProvideService
+	}
+
+	// Получаем рабочее расписание инструктора
+	intervals, err := s.repo.GetInstructorScheduleByID(
+		ctx,
+		instructorID,
+		requestedDayStart,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	// Получаем занятые интервалы
+	bookedIntervals, err := s.repo.GetBookedIntervals(
+		ctx,
+		instructorID,
+		requestedDayStart,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	// Создаём массив для свободных слотов
+	slots := make([]AvailableSlot, 0)
+
+	// Перебираем рабочие интервалы
+	for _, interval := range intervals {
+		workStart := interval.StartsAt
+		workEnd := interval.EndsAt
+
+		// Не начинаем генерацию раньше выбранного дня
+		if workStart.Before(requestedDayStart) {
+			workStart = requestedDayStart
+		}
+
+		// Генерируем слоты каждые 30 минут
+		for slotStart := workStart; slotStart.Before(workEnd); slotStart = slotStart.Add(30 * time.Minute) {
+
+			// Слот должен начинаться в выбранный день
+			if !slotStart.Before(requestedDayEnd) {
+				break
+			}
+
+			slotEnd := slotStart.Add(
+				time.Duration(duration) * time.Minute,
+			)
+
+			// Не показываем слоты, которые уже начались
+			if !slotStart.After(now) {
+				continue
+			}
+
+			// Занятие должно помещаться в рабочее расписание
+			if slotEnd.After(workEnd) {
+				continue
+			}
+
+			// Проверяем пересечения с бронированиями
+			isBusy := false
+
+			for _, booking := range bookedIntervals {
+				if slotStart.Before(booking.EndsAt) &&
+					slotEnd.After(booking.StartsAt) {
+
+					isBusy = true
+					break
+				}
+			}
+
+			if isBusy {
+				continue
+			}
+
+			// Слот свободен
+			slots = append(slots, AvailableSlot{
+				StartsAt: slotStart.In(location),
+				EndsAt:   slotEnd.In(location),
+			})
+		}
+	}
+
+	// Сортируем слоты по времени начала
+	sort.Slice(slots, func(i, j int) bool {
+		return slots[i].StartsAt.Before(slots[j].StartsAt)
+	})
+
+	return slots, nil
+}
+
+func (s *InstructorService) GetInstructorServices(ctx context.Context, instructorID int) ([]InstructorServiceInfo, error) {
+	if instructorID <= 0 {
+		return nil, ErrInstructorInvalidID
+	}
+
+	_, err := s.repo.GetInstructorByID(ctx, instructorID)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrInstructorNotFound
+		}
+		return nil, err
+	}
+
+	services, err := s.repo.GetInstructorServices(ctx, instructorID)
+	if err != nil {
+		return nil, err
+	}
+
+	return services, nil
 }

@@ -15,7 +15,7 @@ func NewPostgresRepository(pool *pgxpool.Pool) *PostgresRepository {
 	return &PostgresRepository{pool: pool}
 }
 
-// Get /instructors
+// ListInstructors returns all instructors
 func (r *PostgresRepository) ListInstructors(ctx context.Context) ([]Instructor, error) {
 	query := `SELECT i.id, u.name AS name, i.specialization, i.description, i.experience_years, i.is_active, i.image_url
 	FROM instructors i
@@ -48,7 +48,7 @@ func (r *PostgresRepository) ListInstructors(ctx context.Context) ([]Instructor,
 	return instructors, nil
 }
 
-// Get /instructors/{id}
+// GetInstructorByID returns an instructor by instructor ID
 func (r *PostgresRepository) GetInstructorByID(ctx context.Context, instructorID int) (Instructor, error) {
 	query := `SELECT i.id, u.name AS name, i.specialization, i.description, i.experience_years, i.is_active, i.image_url
 	FROM instructors i
@@ -68,7 +68,7 @@ func (r *PostgresRepository) GetInstructorByID(ctx context.Context, instructorID
 	return instructor, nil
 }
 
-// Get /instructors/{id}/schedule
+// GetInstructorScheduleByID returns instructor working intervals for a date
 func (r *PostgresRepository) GetInstructorScheduleByID(ctx context.Context, instructorID int, date time.Time) ([]InstructorSchedule, error) {
 	query := `SELECT id, starts_at, ends_at
         FROM instructor_schedules
@@ -105,7 +105,7 @@ func (r *PostgresRepository) GetInstructorScheduleByID(ctx context.Context, inst
 	return schedule, nil
 }
 
-// Get /instructors/me/bookings
+// GetBookedIntervals returns occupied time intervals for a date
 func (r *PostgresRepository) GetBookedIntervals(ctx context.Context, instructorID int, date time.Time) ([]BookedInterval, error) {
 	query := `SELECT starts_at, ends_at
         FROM lesson_bookings
@@ -143,6 +143,7 @@ func (r *PostgresRepository) GetBookedIntervals(ctx context.Context, instructorI
 	return intervals, nil
 }
 
+// GetMyInstructorBookings returns bookings for the authenticated instructor
 func (r *PostgresRepository) GetMyInstructorBookings(ctx context.Context, userID int, date *time.Time) ([]InstructorBooking, error) {
 	query := `SELECT b.id, u.name AS client_name, s.name AS service_name, b.starts_at, b.ends_at, b.status
 	FROM lesson_bookings b
@@ -193,6 +194,7 @@ func (r *PostgresRepository) GetMyInstructorBookings(ctx context.Context, userID
 
 }
 
+// GetInstructorByUserID finds an instructor ID by user ID
 func (r *PostgresRepository) GetInstructorByUserID(ctx context.Context, userID int) (int, error) {
 	query := `SELECT i.id AS instructor_id
 	FROM instructors i
@@ -206,4 +208,87 @@ func (r *PostgresRepository) GetInstructorByUserID(ctx context.Context, userID i
 	}
 	return id, nil
 
+}
+
+// GetServiceDuration возвращает продолжительность активной услуги в минутах
+func (r *PostgresRepository) GetServiceDuration(ctx context.Context, serviceID int) (int, error) {
+	query := `
+		SELECT duration_minutes
+		FROM services
+		WHERE id = $1 AND is_active = true
+	`
+
+	var duration int
+
+	row := r.pool.QueryRow(ctx, query, serviceID)
+	err := row.Scan(&duration)
+	if err != nil {
+		return 0, err
+	}
+
+	return duration, nil
+}
+
+// InstructorProvidesService проверяет, оказывает ли инструктор выбранную услугу
+func (r *PostgresRepository) InstructorProvidesService(ctx context.Context, instructorID, serviceID int) (bool, error) {
+	query := `
+		SELECT EXISTS (
+			SELECT 1
+			FROM instructor_services
+			WHERE instructor_id = $1
+			  AND service_id = $2
+		)`
+
+	var exists bool
+
+	row := r.pool.QueryRow(ctx, query, instructorID, serviceID)
+	err := row.Scan(&exists)
+	if err != nil {
+		return false, err
+	}
+
+	return exists, nil
+}
+
+func (r *PostgresRepository) GetInstructorServices(ctx context.Context, instructorID int) ([]InstructorServiceInfo, error) {
+	query := `SELECT s.id, s.name, s.description, s.duration_minutes, s.price, s.is_active
+        FROM instructor_services ins
+        INNER JOIN services s
+            ON ins.service_id = s.id
+        WHERE ins.instructor_id = $1
+          AND s.is_active = true
+        ORDER BY s.id
+    `
+
+	rows, err := r.pool.Query(ctx, query, instructorID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	result := make([]InstructorServiceInfo, 0)
+
+	for rows.Next() {
+		var service InstructorServiceInfo
+
+		err := rows.Scan(
+			&service.ID,
+			&service.Name,
+			&service.Description,
+			&service.DurationMinutes,
+			&service.Price,
+			&service.IsActive,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		result = append(result, service)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return result, nil
 }

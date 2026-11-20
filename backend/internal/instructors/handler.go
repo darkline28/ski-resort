@@ -187,3 +187,115 @@ func (h *Handler) GetMyInstructorBookings(ctx context.Context, request api.GetMy
 
 	return api.GetMyInstructorBookings200JSONResponse(apiResponse), nil
 }
+
+// GetInstructorAvailableSlots implements [api.StrictServerInterface].
+func (h *Handler) GetInstructorAvailableSlots(ctx context.Context, request api.GetInstructorAvailableSlotsRequestObject) (api.GetInstructorAvailableSlotsResponseObject, error) {
+	serviceAvailableslots, err := h.service.GetInstructorAvailableSlots(ctx, request.Id, request.Params.ServiceId, request.Params.Date.Time)
+	if err != nil {
+		if errors.Is(err, ErrInstructorInvalidID) {
+			return api.GetInstructorAvailableSlots400JSONResponse{
+				Error:   "bad_request",
+				Message: "Некорректный ID инструктора",
+			}, nil
+		}
+
+		if errors.Is(err, ErrInvalidServiceID) {
+			return api.GetInstructorAvailableSlots400JSONResponse{
+				Error:   "bad_request",
+				Message: "Некорректный ID услуги",
+			}, nil
+		}
+
+		if errors.Is(err, ErrInvalidDate) {
+			return api.GetInstructorAvailableSlots400JSONResponse{
+				Error:   "bad_request",
+				Message: "Нельзя выбрать прошедшую дату",
+			}, nil
+		}
+
+		if errors.Is(err, ErrInstructorNotFound) {
+			return api.GetInstructorAvailableSlots404JSONResponse{
+				Error:   "not_found",
+				Message: "Инструктор не найден",
+			}, nil
+		}
+
+		if errors.Is(err, ErrInstructorNotWork) {
+			return api.GetInstructorAvailableSlots404JSONResponse{
+				Error:   "not_found",
+				Message: "Инструктор временно недоступен для записи",
+			}, nil
+		}
+
+		if errors.Is(err, ErrServiceNotFound) {
+			return api.GetInstructorAvailableSlots404JSONResponse{
+				Error:   "not_found",
+				Message: "Услуга не найдена или недоступна",
+			}, nil
+		}
+
+		if errors.Is(err, ErrInstructorNotProvideService) {
+			return api.GetInstructorAvailableSlots422JSONResponse{
+				Error:   "service_not_supported",
+				Message: "Инструктор не проводит выбранную услугу",
+			}, nil
+		}
+
+		slog.ErrorContext(ctx, "GetInstructorAvailableSlots failed", "error", err)
+
+		return api.GetInstructorAvailableSlots500JSONResponse{
+			Error:   "internal_server_error",
+			Message: "Внутренняя ошибка сервера",
+		}, nil
+	}
+
+	response := make([]api.AvailableSlot, 0, len(serviceAvailableslots))
+
+	for _, availableSlot := range serviceAvailableslots {
+		slot := api.AvailableSlot{
+			EndsAt:   availableSlot.EndsAt,
+			StartsAt: availableSlot.StartsAt,
+		}
+		response = append(response, slot)
+	}
+	return api.GetInstructorAvailableSlots200JSONResponse(response), nil
+}
+
+func (h *Handler) GetInstructorServices(ctx context.Context, request api.GetInstructorServicesRequestObject) (api.GetInstructorServicesResponseObject, error) {
+	services, err := h.service.GetInstructorServices(ctx, request.Id)
+	if err != nil {
+		if errors.Is(err, ErrInstructorInvalidID) {
+			return api.GetInstructorServices400JSONResponse{
+				Error:   "bad_request",
+				Message: "Некорректный ID инструктора",
+			}, nil
+		}
+
+		if errors.Is(err, ErrInstructorNotFound) {
+			return api.GetInstructorServices404JSONResponse{
+				Error:   "not_found",
+				Message: "Инструктор не найден",
+			}, nil
+		}
+
+		return api.GetInstructorServices500JSONResponse{
+			Error:   "internal_server_error",
+			Message: "Внутренняя ошибка сервера",
+		}, nil
+	}
+
+	response := make([]api.Service, 0, len(services))
+
+	for _, service := range services {
+		response = append(response, api.Service{
+			Id:              service.ID,
+			Name:            service.Name,
+			Description:     service.Description,
+			DurationMinutes: service.DurationMinutes,
+			Price:           service.Price,
+			IsActive:        service.IsActive,
+		})
+	}
+
+	return api.GetInstructorServices200JSONResponse(response), nil
+}

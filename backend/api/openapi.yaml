@@ -474,6 +474,66 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+              
+  /instructors/{id}/available-slots:
+    get:
+      tags:
+        - Instructor
+      summary: Получить доступные слоты инструктора для выбранной услуги
+      operationId: getInstructorAvailableSlots
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID инструктора
+          schema:
+            type: integer
+        - name: service_id
+          in: query
+          required: true
+          description: ID выбранной услуги
+          schema:
+            type: integer
+        - name: date
+          in: query
+          required: true
+          description: Дата занятия по московскому времени
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Список доступных слотов
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AvailableSlot'
+        '400':
+          description: Некорректные параметры запроса
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Инструктор или услуга не найдены
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Инструктор не оказывает выбранную услугу
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'  
 
   /instructors/me/bookings:
     get:
@@ -523,6 +583,106 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+  /instructors/{id}/services:
+    get:
+      tags:
+        - Instructor
+      summary: Получить услуги конкретного инструктора
+      operationId: getInstructorServices
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Список активных услуг инструктора
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Service'
+        '400':
+          description: Некорректный ID инструктора
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Инструктор не найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              
+  /services:
+    get:
+      tags:
+        - services
+      summary: Получить список доступных услуг
+      operationId: listServices
+      responses:
+        '200':
+          description: Список услуг
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Service'
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error' 
+          
+  /services/{id}:
+    get:
+      tags:
+        - services
+      summary: Получить услугу по id
+      operationId: getServiceByID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Получение услуги по id
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Service'
+        '400':
+          description: Неверный id
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Услуга не найдена
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error' 
+            
 
 
 components:
@@ -572,10 +732,13 @@ components:
       required:
         - id
         - name
+        - code
       properties:
         id:
           type: integer
         name:
+          type: string
+        code:
           type: string
 
     EquipmentSet:
@@ -742,5 +905,40 @@ components:
             - completed
             - no_show
 
-        
+    Service:
+      type: object
+      required:
+        - id
+        - name
+        - duration_minutes
+        - price
+        - is_active
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        duration_minutes:
+          type: integer
+        price:
+          type: integer
+        is_active:
+          type: boolean
+        description:
+          type: string
+          nullable: true
+      
+    AvailableSlot:
+      type: object
+      required:
+        - starts_at
+        - ends_at
+      properties:
+        starts_at:
+          type: string
+          format: date-time
+        ends_at:
+          type: string
+          format: date-time
 
+        
