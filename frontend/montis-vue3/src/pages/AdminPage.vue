@@ -1,175 +1,175 @@
-<script setup lang="ts">
-import { ref, onMounted } from 'vue';
-import { adminApi } from '@/api';
-import type {
-  Booking,
-  Lesson,
-  Equipment,
-  User,
-  BookingStatus,
-} from '@/types';
 
-const tab = ref('bookings');
-const bookings = ref<Booking[]>([]);
+<script setup lang="ts">
+import { ref, watch } from 'vue';
+import { catalogApi } from '@/api';
+import type { Lesson, Equipment } from '@/types';
+
+type Tab = 'bookings' | 'lessons' | 'equipment' | 'users';
+
+const tab = ref<Tab>('lessons');
+
 const lessons = ref<Lesson[]>([]);
 const equipment = ref<Equipment[]>([]);
-const users = ref<User[]>([]);
-const error = ref('');
-const loading = ref(true);
 
-const tabs = [
-  ['bookings', 'Бронирования'],
-  ['lessons', 'Услуги'],
-  ['equipment', 'Оборудование'],
-  ['users', 'Пользователи'],
+const error = ref('');
+const loading = ref(false);
+
+const tabs: { id: Tab; title: string }[] = [
+  { id: 'bookings', title: 'Бронирования' },
+  { id: 'lessons', title: 'Услуги' },
+  { id: 'equipment', title: 'Оборудование' },
+  { id: 'users', title: 'Пользователи' },
 ];
 
+const unavailableTabs: Tab[] = ['bookings', 'users'];
+
+function formatPrice(value: number): string {
+  return Number(value).toLocaleString('ru-RU');
+}
+
 async function load() {
-  loading.value = true;
   error.value = '';
+
+  if (unavailableTabs.includes(tab.value)) {
+    loading.value = false;
+    return;
+  }
+
+  loading.value = true;
+
   try {
-    const [b, l, e, u] = await Promise.all([
-      adminApi.bookings(),
-      adminApi.lessons(),
-      adminApi.equipment(),
-      adminApi.users(),
-    ]);
-    bookings.value = b;
-    lessons.value = l;
-    equipment.value = e;
-    users.value = u;
-  } catch (e) {
+    if (tab.value === 'lessons') {
+      lessons.value = await catalogApi.lessons();
+    }
+
+    if (tab.value === 'equipment') {
+      equipment.value = await catalogApi.equipment();
+    }
+  } catch {
     error.value = 'Не удалось загрузить';
   } finally {
     loading.value = false;
   }
 }
 
-async function status(id: number, value: BookingStatus) {
-  try {
-    await adminApi.setBookingStatus(id, value);
-    await load();
-  } catch (e) {
-    error.value = 'Не удалось загрузить';
-  }
-}
-
-async function removeLesson(id: number) {
-  if (!confirm('Удалить услугу?')) return;
-  try {
-    await adminApi.deleteLesson(id);
-    await load();
-  } catch (e) {
-    error.value = 'Не удалось загрузить';
-  }
-}
-
-async function removeEquipment(id: number) {
-  if (!confirm('Удалить оборудование?')) return;
-  try {
-    await adminApi.deleteEquipment(id);
-    await load();
-  } catch (e) {
-    error.value = 'Не удалось загрузить';
-  }
-}
-
-onMounted(load);
+watch(tab, load, { immediate: true });
 </script>
 
 <template>
   <div class="container section section--top">
     <h1 class="h1">Администрирование</h1>
-    <p class="lead">Управление основными данными курорта</p>
+
+    <p class="lead">
+      Просмотр данных курорта и управление системой.
+    </p>
 
     <div class="filters">
       <button
         v-for="t in tabs"
-        :key="t[0]"
+        :key="t.id"
+        type="button"
         class="filter-pill"
-        :class="{ 'filter-pill--active': tab === t[0] }"
-        @click="tab = t[0]"
+        :class="{ 'filter-pill--active': tab === t.id }"
+        @click="tab = t.id"
       >
-        {{ t[1] }}
+        {{ t.title }}
       </button>
     </div>
 
     <div class="card panel">
-      <p v-if="loading">Загрузка...</p>
-      <p v-else-if="error" class="state-error">{{ error }}</p>
+      <template v-if="unavailableTabs.includes(tab)">
+        <h2 class="h3">
+          {{ tab === 'bookings' ? 'Бронирования' : 'Пользователи' }}
+        </h2>
 
-      <div v-else class="table-wrap">
-        <table class="table">
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Название / имя</th>
-              <th>Информация</th>
-              <th>Действие</th>
-            </tr>
-          </thead>
+        <p class="muted">
+          Этот раздел будет доступен после подключения
+          соответствующих административных маршрутов API.
+        </p>
+      </template>
 
-          <tbody v-if="tab === 'bookings'">
-            <tr v-for="b in bookings" :key="b.id">
-              <td>{{ b.id }}</td>
-              <td>{{ b.title }}</td>
-              <td>{{ b.clientName }} · {{ b.status }}</td>
-              <td>
-                <select
-                  class="field"
-                  :value="b.status"
-                  @change="status(b.id, ($event.target as HTMLSelectElement).value as BookingStatus)"
-                >
-                  <option value="confirmed">Подтверждено</option>
-                  <option value="cancelled">Отменено</option>
-                  <option value="completed">Завершено</option>
-                  <option value="no_show">Не пришёл</option>
-                </select>
-              </td>
-            </tr>
-          </tbody>
+      <template v-else>
+        <p v-if="loading" class="muted">
+          Загрузка...
+        </p>
 
-          <tbody v-if="tab === 'lessons'">
-            <tr v-for="l in lessons" :key="l.id">
-              <td>{{ l.id }}</td>
-              <td>{{ l.title }}</td>
-              <td>{{ l.price }} ₽</td>
-              <td>
-                <button class="btn btn--danger btn--sm" @click="removeLesson(l.id)">
-                  Удалить
-                </button>
-              </td>
-            </tr>
-          </tbody>
+        <template v-else-if="error">
+          <p class="state-error">{{ error }}</p>
 
-          <tbody v-if="tab === 'equipment'">
-            <tr v-for="e in equipment" :key="e.id">
-              <td>{{ e.id }}</td>
-              <td>{{ e.title }}</td>
-              <td>{{ e.pricePerHour }} ₽/ч</td>
-              <td>
-                <button class="btn btn--danger btn--sm" @click="removeEquipment(e.id)">
-                  Удалить
-                </button>
-              </td>
-            </tr>
-          </tbody>
+          <button
+            type="button"
+            class="btn btn--outline btn--sm"
+            @click="load"
+          >
+            Повторить
+          </button>
+        </template>
 
-          <tbody v-if="tab === 'users'">
-            <tr v-for="u in users" :key="u.id">
-              <td>{{ u.id }}</td>
-              <td>{{ u.name }}</td>
-              <td>{{ u.email }}</td>
-              <td>{{ u.role }}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+        <div v-else class="table-wrap">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Название</th>
+                <th>Информация</th>
+                <th>Статус</th>
+              </tr>
+            </thead>
+
+            <tbody v-if="tab === 'lessons'">
+              <tr v-for="lesson in lessons" :key="lesson.id">
+                <td>{{ lesson.id }}</td>
+
+                <td>{{ lesson.title }}</td>
+
+                <td>
+                  {{ formatPrice(lesson.price) }} ₽
+                  · {{ lesson.durationMin }} мин
+                </td>
+
+                <td>
+                  {{ lesson.active ? 'Активна' : 'Неактивна' }}
+                </td>
+              </tr>
+
+              <tr v-if="!lessons.length">
+                <td colspan="4">
+                  Услуг пока нет.
+                </td>
+              </tr>
+            </tbody>
+
+            <tbody v-if="tab === 'equipment'">
+              <tr v-for="item in equipment" :key="item.id">
+                <td>{{ item.id }}</td>
+
+                <td>{{ item.title }}</td>
+
+                <td>
+                  {{ formatPrice(item.pricePerHour) }} ₽/час
+                  · {{ item.stock }} шт.
+                </td>
+
+                <td>
+                  {{ item.category }}
+                </td>
+              </tr>
+
+              <tr v-if="!equipment.length">
+                <td colspan="4">
+                  Оборудования пока нет.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </template>
     </div>
 
     <p class="muted small">
-      Создание и редактирование сущностей подключается через API.
-      Серверные права доступа проверяет backend.
+      Просмотр услуг и оборудования использует доступные маршруты API.
+      Создание, редактирование и удаление будут подключены
+      после реализации административных методов backend.
     </p>
   </div>
 </template>
