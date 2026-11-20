@@ -4,7 +4,11 @@ import { bookingApi } from '@/api';
 import { auth } from '@/stores/auth';
 import type { Booking } from '@/types';
 
-const bookings = ref<Booking[]>([]);
+type AccountBooking = Booking & {
+  bookingType: 'lesson' | 'rental';
+};
+
+const bookings = ref<AccountBooking[]>([]);
 const error = ref('');
 const loading = ref(true);
 
