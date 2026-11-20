@@ -101,6 +101,7 @@ type Equipment struct {
 
 // EquipmentCategory defines model for EquipmentCategory.
 type EquipmentCategory struct {
+	Code string `json:"code"`
 	Id   int    `json:"id"`
 	Name string `json:"name"`
 }

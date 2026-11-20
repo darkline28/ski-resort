@@ -13,6 +13,7 @@ type Equipment struct {
 type Category struct {
 	ID   int
 	Name string
+	Code string
 }
 
 type EquipmentSet struct {

@@ -38,3 +38,17 @@ type InstructorBooking struct {
 	EndsAt      time.Time
 	Status      string
 }
+
+type AvailableSlot struct {
+	StartsAt time.Time
+	EndsAt   time.Time
+}
+
+type InstructorServiceInfo struct {
+	ID              int
+	Name            string
+	Description     *string
+	DurationMinutes int
+	Price           int
+	IsActive        bool
+}

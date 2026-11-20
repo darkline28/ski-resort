@@ -94,6 +94,7 @@ func (h *Handler) GetEquipmentCategories(ctx context.Context, request api.GetEqu
 		category := api.EquipmentCategory{
 			Id:   ctgr.ID,
 			Name: ctgr.Name,
+			Code: ctgr.Code,
 		}
 		apiCategories = append(apiCategories, category)
 	}

@@ -75,7 +75,7 @@ func (r *PostgresRepository) GetEquipmentByID(ctx context.Context, id int) (Equi
 }
 
 func (r *PostgresRepository) GetEquipmentCategories(ctx context.Context) ([]Category, error) {
-	query := `SELECT id, name FROM equipment_categories`
+	query := `SELECT id, name, code FROM equipment_categories`
 
 	rows, err := r.pool.Query(ctx, query)
 	if err != nil {
@@ -87,7 +87,7 @@ func (r *PostgresRepository) GetEquipmentCategories(ctx context.Context) ([]Cate
 
 	for rows.Next() {
 		var category Category
-		err := rows.Scan(&category.ID, &category.Name)
+		err := rows.Scan(&category.ID, &category.Name, &category.Code)
 		if err != nil {
 			return nil, err
 		}
