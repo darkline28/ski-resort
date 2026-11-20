@@ -115,7 +115,15 @@ export const catalogApi = {
 };
 
 export const bookingApi = {
-  createLesson: (p: LessonBookingPayload) => request<Booking>('/bookings/lesson', { method: 'POST', body: p }),
+  createLesson: (p: LessonBookingPayload) =>
+  request<Booking>('/lesson-bookings', {
+    method: 'POST',
+    body: {
+      instructor_id: p.instructorId,
+      service_id: p.lessonId,
+      starts_at: p.start,
+    },
+  }),
   createRental: (p: RentalBookingPayload) => request<Booking>('/bookings/rental', { method: 'POST', body: p }),
   get: (id: number) => request<Booking>(`/bookings/${id}`),
   my: (type?: BookingType) => request<Booking[]>('/me/bookings', { query: { type } }),
