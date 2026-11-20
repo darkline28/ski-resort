@@ -12,10 +12,21 @@ import (
 type contextKey string
 
 const userIDKey contextKey = "userID"
+const userRoleKey contextKey = "role"
+
+type Claims struct {
+	Role string `json:"role"`
+	jwt.RegisteredClaims
+}
 
 func UserIDFromContext(ctx context.Context) (int, bool) {
 	id, ok := ctx.Value(userIDKey).(int)
 	return id, ok && id > 0
+}
+
+func RoleFromContext(ctx context.Context) (string, bool) {
+	role, ok := ctx.Value(userRoleKey).(string)
+	return role, ok && role != ""
 }
 
 func isPublicRoute(method, path string) bool {
@@ -96,7 +107,7 @@ func AuthMiddleware(jwtSecret []byte, next http.Handler) http.Handler {
 			return
 		}
 
-		claims := &jwt.RegisteredClaims{}
+		claims := &Claims{}
 
 		token, err := jwt.ParseWithClaims(after, claims, func(token *jwt.Token) (interface{}, error) {
 			return jwtSecret, nil
@@ -112,7 +123,14 @@ func AuthMiddleware(jwtSecret []byte, next http.Handler) http.Handler {
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		}
+		if claims.Role != "client" &&
+			claims.Role != "instructor" &&
+			claims.Role != "admin" {
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
 		ctx := context.WithValue(r.Context(), userIDKey, id)
+		ctx = context.WithValue(ctx, userRoleKey, claims.Role)
 		r = r.WithContext(ctx)
 		next.ServeHTTP(w, r)
 

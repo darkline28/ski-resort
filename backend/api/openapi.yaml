@@ -682,6 +682,251 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error' 
+          
+  
+  /lesson-bookings:
+    post:
+      tags:
+        - bookings
+      summary: Создать бронирование занятия
+      operationId: createLessonBooking
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - instructor_id
+                - service_id
+                - starts_at
+              properties:
+                instructor_id:
+                  type: integer
+                  minimum: 1
+                service_id:
+                  type: integer
+                  minimum: 1
+                starts_at:
+                  type: string
+                  format: date-time
+      responses:
+        '201':
+          description: Бронирование успешно создано
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LessonBooking'
+        '400':
+          description: Некорректные данные запроса
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Пользователь не авторизован
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Недостаточно прав
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Инструктор или услуга не найдены
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Выбранное время уже занято
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Невозможно забронировать занятие с указанными параметрами
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /lesson-bookings/my:
+    get:
+      tags:
+        - bookings
+      summary: Получить свои бронирования занятий
+      operationId: getMyLessonBookings
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum:
+              - confirmed
+              - cancelled
+              - completed
+              - no_show
+      responses:
+        '200':
+          description: Список бронирований пользователя
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/LessonBookingDetail'
+        '400':
+          description: Некорректный параметр запроса
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Пользователь не авторизован
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Недостаточно прав
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /lesson-bookings/{id}:
+    get:
+      tags:
+        - bookings
+      summary: Получить бронирование занятия по ID
+      operationId: getLessonBookingById
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        '200':
+          description: Информация о бронировании
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LessonBookingDetail'
+        '400':
+          description: Некорректный ID бронирования
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Пользователь не авторизован
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Недостаточно прав
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Бронирование не найдено
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /lesson-bookings/{id}/cancel:
+    patch:
+      tags:
+        - bookings
+      summary: Отменить своё бронирование занятия
+      operationId: cancelLessonBooking
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        '200':
+          description: Бронирование успешно отменено
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LessonBookingDetail'
+        '400':
+          description: Некорректный ID бронирования
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Пользователь не авторизован
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Недостаточно прав
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Бронирование не найдено
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Бронирование нельзя отменить в текущем состоянии
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
             
 
 
@@ -940,5 +1185,95 @@ components:
         ends_at:
           type: string
           format: date-time
+        
+    
+    LessonBooking:
+      type: object
+      required:
+        - id
+        - user_id
+        - instructor_id
+        - service_id
+        - starts_at
+        - ends_at
+        - status
+        - total_price
+        - created_at
+      properties:
+        id:
+          type: integer
+        user_id:
+          type: integer
+        instructor_id:
+          type: integer
+        service_id:
+          type: integer
+        starts_at:
+          type: string
+          format: date-time
+        ends_at:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum:
+            - confirmed
+            - cancelled
+            - completed
+            - no_show
+        total_price:
+          type: integer
+          minimum: 0
+        created_at:
+          type: string
+          format: date-time
+
+    LessonBookingDetail:
+      type: object
+      required:
+        - id
+        - user_id
+        - instructor_id
+        - instructor_name
+        - service_id
+        - service_name
+        - starts_at
+        - ends_at
+        - status
+        - total_price
+        - created_at
+      properties:
+        id:
+          type: integer
+        user_id:
+          type: integer
+        instructor_id:
+          type: integer
+        instructor_name:
+          type: string
+        service_id:
+          type: integer
+        service_name:
+          type: string
+        starts_at:
+          type: string
+          format: date-time
+        ends_at:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum:
+            - confirmed
+            - cancelled
+            - completed
+            - no_show
+        total_price:
+          type: integer
+          minimum: 0
+        created_at:
+          type: string
+          format: date-time
+
 
         

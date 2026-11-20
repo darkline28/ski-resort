@@ -29,16 +29,23 @@ type Service struct {
 	tokenTTL  time.Duration
 }
 
+type Claims struct {
+	Role string `json:"role"`
+	jwt.RegisteredClaims
+}
+
 func NewService(repo UserRepository, jwtSecret []byte, tokenTTL time.Duration) *Service {
 	return &Service{repo: repo, jwtSecret: jwtSecret, tokenTTL: tokenTTL}
 }
 
-func (s *Service) generateToken(id int) (string, error) {
+func (s *Service) generateToken(id int, role string) (string, error) {
 	now := time.Now()
-	claims := jwt.RegisteredClaims{
-		Subject:   strconv.Itoa(id),
-		IssuedAt:  jwt.NewNumericDate(now),
-		ExpiresAt: jwt.NewNumericDate(now.Add(s.tokenTTL)),
+	claims := Claims{
+		Role: role,
+		RegisteredClaims: jwt.RegisteredClaims{
+			Subject:   strconv.Itoa(id),
+			IssuedAt:  jwt.NewNumericDate(now),
+			ExpiresAt: jwt.NewNumericDate(now.Add(s.tokenTTL))},
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	return token.SignedString(s.jwtSecret)
@@ -106,7 +113,7 @@ func (s *Service) Register(ctx context.Context, input RegisterInput) (users.User
 		return users.User{}, "", err
 	}
 	user.ID = id
-	token, err := s.generateToken(user.ID)
+	token, err := s.generateToken(user.ID, user.Role)
 	if err != nil {
 		return users.User{}, "", err
 	}
@@ -139,7 +146,7 @@ func (s *Service) Login(ctx context.Context, email, password string) (users.User
 	if err != nil {
 		return users.User{}, "", ErrInvalidEmailOrPassword
 	}
-	token, err := s.generateToken(user.ID)
+	token, err := s.generateToken(user.ID, user.Role)
 	if err != nil {
 		return users.User{}, "", err
 	}

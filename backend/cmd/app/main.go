@@ -10,6 +10,8 @@ import (
 
 	"github.com/darkline28/ski-resort/backend/internal/auth"
 	authapi "github.com/darkline28/ski-resort/backend/internal/auth/api"
+	"github.com/darkline28/ski-resort/backend/internal/bookings"
+	bookingsapi "github.com/darkline28/ski-resort/backend/internal/bookings/api"
 	"github.com/darkline28/ski-resort/backend/internal/catalog"
 	catalogapi "github.com/darkline28/ski-resort/backend/internal/catalog/api"
 	"github.com/darkline28/ski-resort/backend/internal/database"
@@ -70,10 +72,15 @@ func main() {
 	serviceService := services.NewServiceService(serviceRepo)
 	serviceHandler := services.NewHandler(serviceService)
 
+	bookingsRepo := bookings.NewPostgresRepository(pool)
+	bookingsService := bookings.NewService(bookingsRepo)
+	bookingsHandler := bookings.NewHandler(bookingsService)
+
 	authStrictHandler := authapi.NewStrictHandler(authHandler, nil)
 	catalogStrictHandler := catalogapi.NewStrictHandler(catalogHandler, nil)
 	instructorsStrictHandelr := instructorsapi.NewStrictHandler(instructorsHandler, nil)
 	servicesStrictHandler := servicesapi.NewStrictHandler(serviceHandler, nil)
+	bookingsStrictHandler := bookingsapi.NewStrictHandler(bookingsHandler, nil)
 
 	mux := http.NewServeMux()
 
@@ -81,6 +88,7 @@ func main() {
 	catalogapi.HandlerFromMux(catalogStrictHandler, mux)
 	instructorsapi.HandlerFromMux(instructorsStrictHandelr, mux)
 	servicesapi.HandlerFromMux(servicesStrictHandler, mux)
+	bookingsapi.HandlerFromMux(bookingsStrictHandler, mux)
 
 	handler := middleware.AuthMiddleware([]byte(jwtSecret), mux)
 
