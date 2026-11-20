@@ -114,6 +114,61 @@ export const catalogApi = {
     request<{ available: number }>(`/equipment/${id}/availability`, { query: { start, end, size } }),
 };
 
+type BackendLessonBooking = {
+  id: number;
+  instructor_name: string;
+  service_name: string;
+  starts_at: string;
+  ends_at: string;
+  status: Booking['status'];
+  total_price: number;
+};
+
+type BackendRentalBooking = {
+  id: number;
+  starts_at: string;
+  ends_at: string;
+  status: string;
+  total_price: number;
+  items: { name: string }[];
+  sets: { name: string }[];
+};
+
+type AccountBooking = Booking & {
+  bookingType: 'lesson' | 'rental';
+};
+
+function mapLessonBooking(b: BackendLessonBooking): AccountBooking {
+  return {
+    id: b.id,
+    type: 'lesson',
+    bookingType: 'lesson',
+    title: `${b.service_name} — ${b.instructor_name}`,
+    start: b.starts_at,
+    end: b.ends_at,
+    status: b.status,
+    total: b.total_price,
+  } as AccountBooking;
+}
+
+function mapRentalBooking(b: BackendRentalBooking): AccountBooking {
+  const names = [
+    ...(b.items ?? []).map((item) => item.name),
+    ...(b.sets ?? []).map((set) => set.name),
+  ];
+
+  return {
+    id: b.id,
+    type: 'rental',
+    bookingType: 'rental',
+    title: names.join(', ') || 'Аренда оборудования',
+    start: b.starts_at,
+    end: b.ends_at,
+    status: b.status,
+    total: b.total_price,
+  } as AccountBooking;
+}
+
 export const bookingApi = {
   createLesson: (p: LessonBookingPayload) =>
   request<Booking>('/lesson-bookings', {
@@ -126,7 +181,19 @@ export const bookingApi = {
   }),
   createRental: (p: RentalBookingPayload) => request<Booking>('/bookings/rental', { method: 'POST', body: p }),
   get: (id: number) => request<Booking>(`/bookings/${id}`),
-  my: (type?: BookingType) => request<Booking[]>('/me/bookings', { query: { type } }),
+  my: async (_type?: BookingType): Promise<AccountBooking[]> => {
+  const [lessons, rentals] = await Promise.all([
+    request<BackendLessonBooking[]>('/lesson-bookings/my'),
+    request<BackendRentalBooking[]>('/equipment-bookings/my'),
+  ]);
+
+  return [
+    ...lessons.map(mapLessonBooking),
+    ...rentals.map(mapRentalBooking),
+  ].sort(
+    (a, b) => new Date(b.start).getTime() - new Date(a.start).getTime()
+  );
+},
   cancel: (id: number) => request<Booking>(`/bookings/${id}/cancel`, { method: 'POST' }),
   pay: (id: number, p: PaymentPayload) => request<Booking>(`/bookings/${id}/pay`, { method: 'POST', body: p }),
 };
