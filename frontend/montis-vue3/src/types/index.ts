@@ -50,10 +50,14 @@ export interface Instructor {
 }
 
 export type BookingStatus =
+  | 'pending'
   | 'confirmed'
   | 'cancelled'
   | 'completed'
-  | 'no_show';
+  | 'no_show'
+  | 'issued'
+  | 'returned';
+
 export type BookingType = 'lesson' | 'rental';
 
 export interface Booking {
