@@ -140,6 +140,7 @@ CREATE TABLE equipment_bookings (
     ends_at TIMESTAMPTZ NOT NULL,
     status VARCHAR(20) NOT NULL
         CHECK (status IN (
+            'pending',
             'confirmed',
             'issued',
             'returned',
