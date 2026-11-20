@@ -83,9 +83,37 @@ export const catalogApi = {
   (await request<BackendService[]>('/services')).map(mapService),
   lesson: async (id: number) =>
   mapService(await request<BackendService>(`/services/${id}`)),
-  equipment: async (category?: EquipmentCategory) => (await request<BackendEquipment[]>('/equipment', { query: { category } })).map(mapEquipment),
-  equipmentItem: async (id: number) => mapEquipment(await request<BackendEquipment>(`/equipment/${id}`)),
-  instructors: async () =>
+  
+equipment: async (category?: EquipmentCategory) =>
+  (
+    await request<BackendEquipment[]>('/equipment', {
+      query: { category },
+    })
+  ).map(mapEquipment),
+
+equipmentItem: async (id: number) =>
+  mapEquipment(
+    await request<BackendEquipment>(`/equipment/${id}`)
+  ),
+
+equipmentCategories: () =>
+  request<{ id: number; name: string; code: string }[]>(
+    '/equipment/categories'
+  ),
+
+equipmentSets: () =>
+  request<{
+    id: number;
+    name: string;
+    description?: string;
+    sport_type: 'ski' | 'snowboard';
+    age_group: 'adult' | 'child';
+    price_per_hour: number;
+    is_active: boolean;
+  }[]>('/equipment/sets'),
+
+instructors: async () =>
+
   (await request<BackendInstructor[]>('/instructors')).map(mapInstructor),
   instructor: async (id: number) =>
   mapInstructor(await request<BackendInstructor>(`/instructors/${id}`)),
