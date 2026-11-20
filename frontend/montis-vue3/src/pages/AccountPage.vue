@@ -27,13 +27,14 @@ async function load() {
   }
 }
 
-async function cancel(id: number) {
+async function cancel(id: number, type: 'lesson' | 'rental') {
   if (!confirm('Отменить запись?')) return;
+
   try {
-    await bookingApi.cancel(id);
+    await bookingApi.cancel(id, type);
     await load();
   } catch (e) {
-    error.value = 'Не удалось загрузить';
+    error.value = 'Не удалось отменить бронирование';
   }
 }
 
@@ -65,7 +66,7 @@ onMounted(load);
         <button
           v-if="b.status === 'confirmed'"
           class="btn btn--outline btn--sm"
-          @click="cancel(b.id)"
+          @click="cancel(b.id, b.bookingType)"
         >
           Отменить
         </button>
