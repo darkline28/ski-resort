@@ -56,9 +56,33 @@ function mapInstructor(item: BackendInstructor): Instructor {
   } as Instructor;
 }
 
+type BackendService = {
+  id: number;
+  name: string;
+  description?: string | null;
+  duration_minutes: number;
+  price: number;
+  is_active: boolean;
+};
+
+function mapService(item: BackendService): Lesson {
+  return {
+    id: item.id,
+    title: item.name,
+    description: item.description ?? '',
+    durationMin: item.duration_minutes,
+    price: item.price,
+    active: item.is_active,
+    category: 'individual',
+    imageUrl: null,
+  };
+}
+
 export const catalogApi = {
-  lessons: (category?: LessonCategory) => request<Lesson[]>('/lessons', { query: { category } }),
-  lesson: (id: number) => request<Lesson>(`/lessons/${id}`),
+  lessons: async (_category?: LessonCategory) =>
+  (await request<BackendService[]>('/services')).map(mapService),
+  lesson: async (id: number) =>
+  mapService(await request<BackendService>(`/services/${id}`)),
   equipment: async (category?: EquipmentCategory) => (await request<BackendEquipment[]>('/equipment', { query: { category } })).map(mapEquipment),
   equipmentItem: async (id: number) => mapEquipment(await request<BackendEquipment>(`/equipment/${id}`)),
   instructors: async () =>
