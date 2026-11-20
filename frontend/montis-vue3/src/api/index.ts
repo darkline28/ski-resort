@@ -207,7 +207,24 @@ export const bookingApi = {
       starts_at: p.start,
     },
   }),
-  createRental: (p: RentalBookingPayload) => request<Booking>('/bookings/rental', { method: 'POST', body: p }),
+  
+createRental: (p: RentalBookingPayload) =>
+  request<Booking>('/equipment-bookings', {
+    method: 'POST',
+    body: {
+      starts_at: p.start,
+      ends_at: p.end,
+      items: [
+        {
+          equipment_id: p.equipmentId,
+          size: p.size,
+          quantity: p.quantity,
+        },
+      ],
+      sets: [],
+    },
+  }),
+
   get: (id: number) => request<Booking>(`/bookings/${id}`),
   my: async (_type?: BookingType): Promise<AccountBooking[]> => {
   const [lessons, rentals] = await Promise.all([
