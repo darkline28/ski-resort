@@ -13,7 +13,7 @@ type CatalogItem = Lesson | Equipment | {
   title?: string;
   name?: string;
   description?: string;
-  bio?: string;
+  bio?: string | null;
   imageUrl?: string | null;
   photoUrl?: string | null;
   price?: number;
