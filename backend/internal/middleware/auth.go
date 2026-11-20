@@ -45,6 +45,7 @@ func isPublicRoute(method, path string) bool {
 	if path == "/equipment" ||
 		path == "/equipment/categories" ||
 		path == "/equipment/sets" ||
+		path == "/equipment/availability" ||
 		path == "/instructors" ||
 		path == "/services" {
 		return true

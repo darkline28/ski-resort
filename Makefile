@@ -49,3 +49,9 @@ gen-bookings:
 		-config api/oapi-codegen.yaml \
 		-include-tags bookings \
 		api/openapi.yaml > internal/bookings/api/api.gen.go
+
+gen-rental:
+	cd backend && oapi-codegen \
+		-config api/oapi-codegen.yaml \
+		-include-tags rental \
+		api/openapi.yaml > internal/rental/api/api.gen.go
