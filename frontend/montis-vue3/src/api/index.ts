@@ -194,7 +194,13 @@ export const bookingApi = {
     (a, b) => new Date(b.start).getTime() - new Date(a.start).getTime()
   );
 },
-  cancel: (id: number) => request<Booking>(`/bookings/${id}/cancel`, { method: 'POST' }),
+  cancel: (id: number, type: 'lesson' | 'rental') =>
+  request<Booking>(
+    type === 'lesson'
+      ? `/lesson-bookings/${id}/cancel`
+      : `/equipment-bookings/${id}/cancel`,
+    { method: 'PATCH' }
+  ),
   pay: (id: number, p: PaymentPayload) => request<Booking>(`/bookings/${id}/pay`, { method: 'POST', body: p }),
 };
 
