@@ -21,7 +21,15 @@ export interface Lesson {
   active: boolean;
 }
 
-export type EquipmentCategory = 'ski' | 'snowboard' | 'boots' | 'helmet' | 'kit' | 'goggles';
+export type EquipmentCategory =
+  | 'ski'
+  | 'snowboard'
+  | 'jacket'
+  | 'pants'
+  | 'boots'
+  | 'helmet'
+  | 'goggles'
+  | 'kit';
 
 export interface Equipment {
   id: number;
