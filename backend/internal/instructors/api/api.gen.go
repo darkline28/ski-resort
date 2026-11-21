@@ -18,29 +18,84 @@ import (
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
-// Defines values for InstructorBookingStatus.
+// Defines values for AdminLessonStatus.
 const (
-	Cancelled InstructorBookingStatus = "cancelled"
-	Completed InstructorBookingStatus = "completed"
-	Confirmed InstructorBookingStatus = "confirmed"
-	NoShow    InstructorBookingStatus = "no_show"
+	AdminLessonStatusCancelled AdminLessonStatus = "cancelled"
+	AdminLessonStatusCompleted AdminLessonStatus = "completed"
+	AdminLessonStatusConfirmed AdminLessonStatus = "confirmed"
+	AdminLessonStatusNoShow    AdminLessonStatus = "no_show"
 )
 
-// Valid indicates whether the value is a known member of the InstructorBookingStatus enum.
-func (e InstructorBookingStatus) Valid() bool {
+// Valid indicates whether the value is a known member of the AdminLessonStatus enum.
+func (e AdminLessonStatus) Valid() bool {
 	switch e {
-	case Cancelled:
+	case AdminLessonStatusCancelled:
 		return true
-	case Completed:
+	case AdminLessonStatusCompleted:
 		return true
-	case Confirmed:
+	case AdminLessonStatusConfirmed:
 		return true
-	case NoShow:
+	case AdminLessonStatusNoShow:
 		return true
 	default:
 		return false
 	}
 }
+
+// Defines values for InstructorBookingStatus.
+const (
+	InstructorBookingStatusCancelled InstructorBookingStatus = "cancelled"
+	InstructorBookingStatusCompleted InstructorBookingStatus = "completed"
+	InstructorBookingStatusConfirmed InstructorBookingStatus = "confirmed"
+	InstructorBookingStatusNoShow    InstructorBookingStatus = "no_show"
+)
+
+// Valid indicates whether the value is a known member of the InstructorBookingStatus enum.
+func (e InstructorBookingStatus) Valid() bool {
+	switch e {
+	case InstructorBookingStatusCancelled:
+		return true
+	case InstructorBookingStatusCompleted:
+		return true
+	case InstructorBookingStatusConfirmed:
+		return true
+	case InstructorBookingStatusNoShow:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for UpdateInstructorBookingStatusJSONBodyStatus.
+const (
+	UpdateInstructorBookingStatusJSONBodyStatusCompleted UpdateInstructorBookingStatusJSONBodyStatus = "completed"
+	UpdateInstructorBookingStatusJSONBodyStatusNoShow    UpdateInstructorBookingStatusJSONBodyStatus = "no_show"
+)
+
+// Valid indicates whether the value is a known member of the UpdateInstructorBookingStatusJSONBodyStatus enum.
+func (e UpdateInstructorBookingStatusJSONBodyStatus) Valid() bool {
+	switch e {
+	case UpdateInstructorBookingStatusJSONBodyStatusCompleted:
+		return true
+	case UpdateInstructorBookingStatusJSONBodyStatusNoShow:
+		return true
+	default:
+		return false
+	}
+}
+
+// AdminInstructorBooking defines model for AdminInstructorBooking.
+type AdminInstructorBooking struct {
+	ClientName  string            `json:"client_name"`
+	EndsAt      time.Time         `json:"ends_at"`
+	Id          int               `json:"id"`
+	ServiceName string            `json:"service_name"`
+	StartsAt    time.Time         `json:"starts_at"`
+	Status      AdminLessonStatus `json:"status"`
+}
+
+// AdminLessonStatus defines model for AdminLessonStatus.
+type AdminLessonStatus string
 
 // AvailableSlot defines model for AvailableSlot.
 type AvailableSlot struct {
@@ -109,10 +164,39 @@ type Service struct {
 	Price           int     `json:"price"`
 }
 
+// AdminId defines model for AdminId.
+type AdminId = int
+
+// AdminBadRequest defines model for AdminBadRequest.
+type AdminBadRequest = Error
+
+// AdminConflict defines model for AdminConflict.
+type AdminConflict = Error
+
+// AdminForbidden defines model for AdminForbidden.
+type AdminForbidden = Error
+
+// AdminInternalError defines model for AdminInternalError.
+type AdminInternalError = Error
+
+// AdminNotFound defines model for AdminNotFound.
+type AdminNotFound = Error
+
+// AdminUnauthorized defines model for AdminUnauthorized.
+type AdminUnauthorized = Error
+
 // GetMyInstructorBookingsParams defines parameters for GetMyInstructorBookings.
 type GetMyInstructorBookingsParams struct {
 	Date *openapi_types.Date `form:"date,omitempty" json:"date,omitempty"`
 }
+
+// UpdateInstructorBookingStatusJSONBody defines parameters for UpdateInstructorBookingStatus.
+type UpdateInstructorBookingStatusJSONBody struct {
+	Status UpdateInstructorBookingStatusJSONBodyStatus `json:"status"`
+}
+
+// UpdateInstructorBookingStatusJSONBodyStatus defines parameters for UpdateInstructorBookingStatus.
+type UpdateInstructorBookingStatusJSONBodyStatus string
 
 // GetInstructorAvailableSlotsParams defines parameters for GetInstructorAvailableSlots.
 type GetInstructorAvailableSlotsParams struct {
@@ -128,6 +212,9 @@ type GetInstructorScheduleByIDParams struct {
 	Date openapi_types.Date `form:"date" json:"date"`
 }
 
+// UpdateInstructorBookingStatusJSONRequestBody defines body for UpdateInstructorBookingStatus for application/json ContentType.
+type UpdateInstructorBookingStatusJSONRequestBody UpdateInstructorBookingStatusJSONBody
+
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
 	// ListInstructors Получить список всех инструкторов
@@ -136,6 +223,9 @@ type ServerInterface interface {
 	// GetMyInstructorBookings Получить бронирования занятий текущего инструктора
 	// (GET /instructors/me/bookings)
 	GetMyInstructorBookings(w http.ResponseWriter, r *http.Request, params GetMyInstructorBookingsParams)
+	// UpdateInstructorBookingStatus Завершить занятие или отметить неявку
+	// (PATCH /instructors/me/bookings/{id}/status)
+	UpdateInstructorBookingStatus(w http.ResponseWriter, r *http.Request, id AdminId)
 	// GetInstructorByID Получить информацию об инструкторе
 	// (GET /instructors/{id})
 	GetInstructorByID(w http.ResponseWriter, r *http.Request, id int)
@@ -197,6 +287,32 @@ func (siw *ServerInterfaceWrapper) GetMyInstructorBookings(w http.ResponseWriter
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetMyInstructorBookings(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateInstructorBookingStatus operation middleware
+func (siw *ServerInterfaceWrapper) UpdateInstructorBookingStatus(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id AdminId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateInstructorBookingStatus(w, r, id)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -481,9 +597,22 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/instructors/{id}/available-slots", wrapper.GetInstructorAvailableSlots)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/instructors/me/bookings", wrapper.GetMyInstructorBookings)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/instructors/{id}/services", wrapper.GetInstructorServices)
+	m.HandleFunc(http.MethodPatch+" "+options.BaseURL+"/instructors/me/bookings/{id}/status", wrapper.UpdateInstructorBookingStatus)
 
 	return m
 }
+
+type AdminBadRequestJSONResponse Error
+
+type AdminConflictJSONResponse Error
+
+type AdminForbiddenJSONResponse Error
+
+type AdminInternalErrorJSONResponse Error
+
+type AdminNotFoundJSONResponse Error
+
+type AdminUnauthorizedJSONResponse Error
 
 type ListInstructorsRequestObject struct {
 }
@@ -587,6 +716,113 @@ func (response GetMyInstructorBookings403JSONResponse) VisitGetMyInstructorBooki
 type GetMyInstructorBookings500JSONResponse Error
 
 func (response GetMyInstructorBookings500JSONResponse) VisitGetMyInstructorBookingsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateInstructorBookingStatusRequestObject struct {
+	Id   AdminId `json:"id"`
+	Body *UpdateInstructorBookingStatusJSONRequestBody
+}
+
+type UpdateInstructorBookingStatusResponseObject interface {
+	VisitUpdateInstructorBookingStatusResponse(w http.ResponseWriter) error
+}
+
+type UpdateInstructorBookingStatus200JSONResponse AdminInstructorBooking
+
+func (response UpdateInstructorBookingStatus200JSONResponse) VisitUpdateInstructorBookingStatusResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateInstructorBookingStatus400JSONResponse struct{ AdminBadRequestJSONResponse }
+
+func (response UpdateInstructorBookingStatus400JSONResponse) VisitUpdateInstructorBookingStatusResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateInstructorBookingStatus401JSONResponse struct{ AdminUnauthorizedJSONResponse }
+
+func (response UpdateInstructorBookingStatus401JSONResponse) VisitUpdateInstructorBookingStatusResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateInstructorBookingStatus403JSONResponse struct{ AdminForbiddenJSONResponse }
+
+func (response UpdateInstructorBookingStatus403JSONResponse) VisitUpdateInstructorBookingStatusResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateInstructorBookingStatus404JSONResponse struct{ AdminNotFoundJSONResponse }
+
+func (response UpdateInstructorBookingStatus404JSONResponse) VisitUpdateInstructorBookingStatusResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateInstructorBookingStatus409JSONResponse struct{ AdminConflictJSONResponse }
+
+func (response UpdateInstructorBookingStatus409JSONResponse) VisitUpdateInstructorBookingStatusResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateInstructorBookingStatus500JSONResponse struct{ AdminInternalErrorJSONResponse }
+
+func (response UpdateInstructorBookingStatus500JSONResponse) VisitUpdateInstructorBookingStatusResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response); err != nil {
@@ -878,6 +1114,9 @@ type StrictServerInterface interface {
 	// GetMyInstructorBookings Получить бронирования занятий текущего инструктора
 	// (GET /instructors/me/bookings)
 	GetMyInstructorBookings(ctx context.Context, request GetMyInstructorBookingsRequestObject) (GetMyInstructorBookingsResponseObject, error)
+	// UpdateInstructorBookingStatus Завершить занятие или отметить неявку
+	// (PATCH /instructors/me/bookings/{id}/status)
+	UpdateInstructorBookingStatus(ctx context.Context, request UpdateInstructorBookingStatusRequestObject) (UpdateInstructorBookingStatusResponseObject, error)
 	// GetInstructorByID Получить информацию об инструкторе
 	// (GET /instructors/{id})
 	GetInstructorByID(ctx context.Context, request GetInstructorByIDRequestObject) (GetInstructorByIDResponseObject, error)
@@ -974,6 +1213,39 @@ func (sh *strictHandler) GetMyInstructorBookings(w http.ResponseWriter, r *http.
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(GetMyInstructorBookingsResponseObject); ok {
 		if err := validResponse.VisitGetMyInstructorBookingsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// UpdateInstructorBookingStatus operation middleware
+func (sh *strictHandler) UpdateInstructorBookingStatus(w http.ResponseWriter, r *http.Request, id AdminId) {
+	var request UpdateInstructorBookingStatusRequestObject
+
+	request.Id = id
+
+	var body UpdateInstructorBookingStatusJSONRequestBody
+	if err := runtime.BindJSONBody(r, &body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.UpdateInstructorBookingStatus(ctx, request.(UpdateInstructorBookingStatusRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UpdateInstructorBookingStatus")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(UpdateInstructorBookingStatusResponseObject); ok {
+		if err := validResponse.VisitUpdateInstructorBookingStatusResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

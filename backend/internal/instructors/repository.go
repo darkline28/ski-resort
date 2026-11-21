@@ -292,3 +292,44 @@ func (r *PostgresRepository) GetInstructorServices(ctx context.Context, instruct
 
 	return result, nil
 }
+
+func (r *PostgresRepository) UpdateInstructorBookingStatus(ctx context.Context, userID, bookingID int, status string) (InstructorBooking, error) {
+	query := `
+		UPDATE lesson_bookings b
+		SET status = $3
+		FROM instructors i, users u, services s
+		WHERE b.id = $2
+		  AND b.instructor_id = i.id
+		  AND i.user_id = $1
+		  AND b.user_id = u.id
+		  AND b.service_id = s.id
+		  AND b.status = 'confirmed'
+		  AND b.starts_at <= NOW()
+		RETURNING b.id, u.name, s.name, b.starts_at, b.ends_at, b.status
+	`
+
+	var booking InstructorBooking
+
+	err := r.pool.QueryRow(ctx, query, userID, bookingID, status).Scan(&booking.ID, &booking.ClientName, &booking.ServiceName, &booking.StartsAt, &booking.EndsAt, &booking.Status)
+	if err != nil {
+		return InstructorBooking{}, err
+	}
+
+	return booking, nil
+}
+
+func (r *PostgresRepository) InstructorBookingExists(ctx context.Context, userID, bookingID int) (bool, error) {
+	query := `
+		SELECT EXISTS (
+			SELECT 1
+			FROM lesson_bookings b
+			INNER JOIN instructors i ON b.instructor_id = i.id
+			WHERE b.id = $1 AND i.user_id = $2
+		)
+	`
+
+	var exists bool
+
+	err := r.pool.QueryRow(ctx, query, bookingID, userID).Scan(&exists)
+	return exists, err
+}
