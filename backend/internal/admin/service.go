@@ -9,6 +9,9 @@ import (
 var ErrInvalidInput = errors.New("invalid input")
 
 type AdminRepository interface {
+	// Clients
+	GetClients(ctx context.Context) ([]Client, error)
+
 	// Services
 	GetServices(ctx context.Context) ([]ServiceModel, error)
 	GetServiceByID(ctx context.Context, id int) (*ServiceModel, error)
@@ -67,6 +70,12 @@ type Service struct {
 
 func NewService(repo AdminRepository) *Service {
 	return &Service{repo: repo}
+}
+
+// CLIENTS
+
+func (s *Service) GetClients(ctx context.Context) ([]Client, error) {
+	return s.repo.GetClients(ctx)
 }
 
 // SERVICES

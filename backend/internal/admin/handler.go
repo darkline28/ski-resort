@@ -176,6 +176,25 @@ func toSetItems(items []api.AdminEquipmentSetItemRequest) []EquipmentSetItemPara
 	return result
 }
 
+// CLIENTS
+
+func (h *Handler) GetAdminClients(ctx context.Context, request api.GetAdminClientsRequestObject) (api.GetAdminClientsResponseObject, error) {
+	if !isAdmin(ctx) {
+		return api.GetAdminClients403JSONResponse{AdminForbiddenJSONResponse: api.AdminForbiddenJSONResponse{Error: "forbidden", Message: "Недостаточно прав"}}, nil
+	}
+
+	clients, err := h.service.GetClients(ctx)
+	if err != nil {
+		return api.GetAdminClients500JSONResponse{AdminInternalErrorJSONResponse: api.AdminInternalErrorJSONResponse(apiError(err))}, nil
+	}
+
+	result := make([]api.AdminClient, 0, len(clients))
+	for _, client := range clients {
+		result = append(result, api.AdminClient{Id: client.ID, Name: client.Name, Email: client.Email, Phone: client.Phone})
+	}
+	return api.GetAdminClients200JSONResponse(result), nil
+}
+
 // SERVICES
 
 func (h *Handler) GetAdminServices(ctx context.Context, request api.GetAdminServicesRequestObject) (api.GetAdminServicesResponseObject, error) {

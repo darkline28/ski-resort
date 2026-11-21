@@ -38,6 +38,32 @@ func dbError(err error) error {
 	return err
 }
 
+// CLIENTS
+
+func (r *PostgresRepository) GetClients(ctx context.Context) ([]Client, error) {
+	query := `SELECT id, name, email, phone FROM users WHERE role = 'client' ORDER BY id`
+
+	rows, err := r.pool.Query(ctx, query)
+	if err != nil {
+		return nil, fmt.Errorf("get clients: %w", err)
+	}
+	defer rows.Close()
+
+	clients := make([]Client, 0)
+	for rows.Next() {
+		var client Client
+		if err := rows.Scan(&client.ID, &client.Name, &client.Email, &client.Phone); err != nil {
+			return nil, fmt.Errorf("scan client: %w", err)
+		}
+		clients = append(clients, client)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("read clients: %w", err)
+	}
+
+	return clients, nil
+}
+
 // SERVICES
 
 func (r *PostgresRepository) GetServices(ctx context.Context) ([]ServiceModel, error) {

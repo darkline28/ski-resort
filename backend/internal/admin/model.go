@@ -2,6 +2,15 @@ package admin
 
 import "time"
 
+// Clients
+
+type Client struct {
+	ID    int
+	Name  string
+	Email string
+	Phone string
+}
+
 // Services
 
 type ServiceModel struct {

@@ -211,6 +211,14 @@ type AdminBookedRentalSet struct {
 	TotalPrice     int    `json:"total_price"`
 }
 
+// AdminClient defines model for AdminClient.
+type AdminClient struct {
+	Email string `json:"email"`
+	Id    int    `json:"id"`
+	Name  string `json:"name"`
+	Phone string `json:"phone"`
+}
+
 // AdminCreateEquipmentRequest defines model for AdminCreateEquipmentRequest.
 type AdminCreateEquipmentRequest struct {
 	CategoryId   int     `json:"category_id"`
@@ -570,6 +578,9 @@ type UpdateAdminServiceJSONRequestBody = AdminUpdateServiceRequest
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
+	// GetAdminClients Получить всех клиентов для назначения инструктором
+	// (GET /admin/clients)
+	GetAdminClients(w http.ResponseWriter, r *http.Request)
 	// CreateAdminEquipment Создать модель оборудования
 	// (POST /admin/equipment)
 	CreateAdminEquipment(w http.ResponseWriter, r *http.Request)
@@ -676,6 +687,20 @@ type ServerInterfaceWrapper struct {
 }
 
 type MiddlewareFunc func(http.Handler) http.Handler
+
+// GetAdminClients operation middleware
+func (siw *ServerInterfaceWrapper) GetAdminClients(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetAdminClients(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
 
 // CreateAdminEquipment operation middleware
 func (siw *ServerInterfaceWrapper) CreateAdminEquipment(w http.ResponseWriter, r *http.Request) {
@@ -1687,6 +1712,7 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 		ErrorHandlerFunc:   options.ErrorHandlerFunc,
 	}
 
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/admin/clients", wrapper.GetAdminClients)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/admin/services", wrapper.GetAdminServices)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/admin/services", wrapper.CreateAdminService)
 	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/admin/services/{id}", wrapper.DeleteAdminService)
@@ -1736,6 +1762,69 @@ type AdminNotFoundJSONResponse Error
 type AdminUnauthorizedJSONResponse Error
 
 type AdminUnprocessableJSONResponse Error
+
+type GetAdminClientsRequestObject struct {
+}
+
+type GetAdminClientsResponseObject interface {
+	VisitGetAdminClientsResponse(w http.ResponseWriter) error
+}
+
+type GetAdminClients200JSONResponse []AdminClient
+
+func (response GetAdminClients200JSONResponse) VisitGetAdminClientsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetAdminClients401JSONResponse struct{ AdminUnauthorizedJSONResponse }
+
+func (response GetAdminClients401JSONResponse) VisitGetAdminClientsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetAdminClients403JSONResponse struct{ AdminForbiddenJSONResponse }
+
+func (response GetAdminClients403JSONResponse) VisitGetAdminClientsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetAdminClients500JSONResponse struct{ AdminInternalErrorJSONResponse }
+
+func (response GetAdminClients500JSONResponse) VisitGetAdminClientsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
 
 type CreateAdminEquipmentRequestObject struct {
 	Body *CreateAdminEquipmentJSONRequestBody
@@ -5087,6 +5176,9 @@ func (response UpdateAdminService500JSONResponse) VisitUpdateAdminServiceRespons
 
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
+	// GetAdminClients Получить всех клиентов для назначения инструктором
+	// (GET /admin/clients)
+	GetAdminClients(ctx context.Context, request GetAdminClientsRequestObject) (GetAdminClientsResponseObject, error)
 	// CreateAdminEquipment Создать модель оборудования
 	// (POST /admin/equipment)
 	CreateAdminEquipment(ctx context.Context, request CreateAdminEquipmentRequestObject) (CreateAdminEquipmentResponseObject, error)
@@ -5222,6 +5314,30 @@ type strictHandler struct {
 	ssi         StrictServerInterface
 	middlewares []StrictMiddlewareFunc
 	options     StrictHTTPServerOptions
+}
+
+// GetAdminClients operation middleware
+func (sh *strictHandler) GetAdminClients(w http.ResponseWriter, r *http.Request) {
+	var request GetAdminClientsRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetAdminClients(ctx, request.(GetAdminClientsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetAdminClients")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetAdminClientsResponseObject); ok {
+		if err := validResponse.VisitGetAdminClientsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
 }
 
 // CreateAdminEquipment operation middleware
