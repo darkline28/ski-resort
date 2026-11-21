@@ -8,6 +8,8 @@ import (
 	"os"
 	"time"
 
+	"github.com/darkline28/ski-resort/backend/internal/admin"
+	adminapi "github.com/darkline28/ski-resort/backend/internal/admin/api"
 	"github.com/darkline28/ski-resort/backend/internal/auth"
 	authapi "github.com/darkline28/ski-resort/backend/internal/auth/api"
 	"github.com/darkline28/ski-resort/backend/internal/bookings"
@@ -82,12 +84,17 @@ func main() {
 	rentalService := rental.NewService(rentalRepo)
 	rentalHandler := rental.NewHandler(rentalService)
 
+	adminRepo := admin.NewPostgresRepository(pool)
+	adminService := admin.NewService(adminRepo)
+	adminHandler := admin.NewHandler(adminService)
+
 	authStrictHandler := authapi.NewStrictHandler(authHandler, nil)
 	catalogStrictHandler := catalogapi.NewStrictHandler(catalogHandler, nil)
 	instructorsStrictHandelr := instructorsapi.NewStrictHandler(instructorsHandler, nil)
 	servicesStrictHandler := servicesapi.NewStrictHandler(serviceHandler, nil)
 	bookingsStrictHandler := bookingsapi.NewStrictHandler(bookingsHandler, nil)
 	rentalStrictHandler := rentalapi.NewStrictHandler(rentalHandler, nil)
+	adminStrictHandler := adminapi.NewStrictHandler(adminHandler, nil)
 
 	mux := http.NewServeMux()
 
@@ -97,6 +104,7 @@ func main() {
 	servicesapi.HandlerFromMux(servicesStrictHandler, mux)
 	bookingsapi.HandlerFromMux(bookingsStrictHandler, mux)
 	rentalapi.HandlerFromMux(rentalStrictHandler, mux)
+	adminapi.HandlerFromMux(adminStrictHandler, mux)
 
 	handler := middleware.AuthMiddleware([]byte(jwtSecret), mux)
 

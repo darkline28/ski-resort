@@ -622,6 +622,40 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+  
+  /instructors/me/bookings/{id}/status:
+    parameters:
+      - $ref: '#/components/parameters/AdminId'
+    patch:
+      tags: [Instructor]
+      operationId: UpdateInstructorBookingStatus
+      summary: Завершить занятие или отметить неявку
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status:
+                  type: string
+                  enum: [completed, no_show]
+      responses:
+        '200':
+          description: Статус обновлён
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminInstructorBooking'
+        '400': { $ref: '#/components/responses/AdminBadRequest' }
+        '401': { $ref: '#/components/responses/AdminUnauthorized' }
+        '403': { $ref: '#/components/responses/AdminForbidden' }
+        '404': { $ref: '#/components/responses/AdminNotFound' }
+        '409': { $ref: '#/components/responses/AdminConflict' }
+        '500': { $ref: '#/components/responses/AdminInternalError' }
               
   /services:
     get:
@@ -1209,8 +1243,805 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+  
+  /admin/services:
+    get:
+      tags: [Admin]
+      operationId: GetAdminServices
+      summary: Получить все услуги, включая неактивные
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Список всех услуг; пустой массив при отсутствии услуг
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AdminService'
+        '401': { $ref: '#/components/responses/AdminUnauthorized' }
+        '403': { $ref: '#/components/responses/AdminForbidden' }
+        '500': { $ref: '#/components/responses/AdminInternalError' }
+    post:
+      tags: [Admin]
+      operationId: CreateAdminService
+      summary: Создать услугу
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminCreateServiceRequest'
+      responses:
+        '201':
+          description: Услуга создана
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminService'
+        '400': { $ref: '#/components/responses/AdminBadRequest' }
+        '401': { $ref: '#/components/responses/AdminUnauthorized' }
+        '403': { $ref: '#/components/responses/AdminForbidden' }
+        '409': { $ref: '#/components/responses/AdminConflict' }
+        '422': { $ref: '#/components/responses/AdminUnprocessable' }
+        '500': { $ref: '#/components/responses/AdminInternalError' }
 
-            
+  /admin/services/{id}:
+    parameters:
+      - $ref: '#/components/parameters/AdminId'
+    get:
+      tags: [Admin]
+      operationId: GetAdminService
+      summary: Получить услугу по ID, включая неактивную
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Услуга найдена
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminService'
+        '400': { $ref: '#/components/responses/AdminBadRequest' }
+        '401': { $ref: '#/components/responses/AdminUnauthorized' }
+        '403': { $ref: '#/components/responses/AdminForbidden' }
+        '404': { $ref: '#/components/responses/AdminNotFound' }
+        '500': { $ref: '#/components/responses/AdminInternalError' }
+    patch:
+      tags: [Admin]
+      operationId: UpdateAdminService
+      summary: Изменить услугу
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminUpdateServiceRequest'
+      responses:
+        '200':
+          description: Услуга обновлена
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminService'
+        '400': { $ref: '#/components/responses/AdminBadRequest' }
+        '401': { $ref: '#/components/responses/AdminUnauthorized' }
+        '403': { $ref: '#/components/responses/AdminForbidden' }
+        '404': { $ref: '#/components/responses/AdminNotFound' }
+        '409': { $ref: '#/components/responses/AdminConflict' }
+        '422': { $ref: '#/components/responses/AdminUnprocessable' }
+        '500': { $ref: '#/components/responses/AdminInternalError' }
+    delete:
+      tags: [Admin]
+      operationId: DeleteAdminService
+      summary: Деактивировать услугу
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: Услуга деактивирована
+        '400': { $ref: '#/components/responses/AdminBadRequest' }
+        '401': { $ref: '#/components/responses/AdminUnauthorized' }
+        '403': { $ref: '#/components/responses/AdminForbidden' }
+        '404': { $ref: '#/components/responses/AdminNotFound' }
+        '409': { $ref: '#/components/responses/AdminConflict' }
+        '422': { $ref: '#/components/responses/AdminUnprocessable' }
+        '500': { $ref: '#/components/responses/AdminInternalError' }
+
+  /admin/instructors:
+    post:
+      tags: [Admin]
+      operationId: CreateAdminInstructor
+      summary: Добавить инструктора
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminCreateInstructorRequest'
+      responses:
+        '201':
+          description: Инструктор создан
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminInstructor'
+        '400': { $ref: '#/components/responses/AdminBadRequest' }
+        '401': { $ref: '#/components/responses/AdminUnauthorized' }
+        '403': { $ref: '#/components/responses/AdminForbidden' }
+        '404': { $ref: '#/components/responses/AdminNotFound' }
+        '409': { $ref: '#/components/responses/AdminConflict' }
+        '422': { $ref: '#/components/responses/AdminUnprocessable' }
+        '500': { $ref: '#/components/responses/AdminInternalError' }
+    
+    get:
+      tags: [Admin]
+      operationId: GetAdminInstructors
+      summary: Получить всех инструкторов
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Список инструкторов
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AdminInstructor'
+        '401': { $ref: '#/components/responses/AdminUnauthorized' }
+        '403': { $ref: '#/components/responses/AdminForbidden' }
+        '500': { $ref: '#/components/responses/AdminInternalError' }
+
+  /admin/instructors/{id}:
+    parameters:
+      - $ref: '#/components/parameters/AdminId'
+    get:
+      tags: [Admin]
+      operationId: GetAdminInstructor
+      summary: Получить инструктора по ID
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Инструктор найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminInstructor'
+        '400': { $ref: '#/components/responses/AdminBadRequest' }
+        '401': { $ref: '#/components/responses/AdminUnauthorized' }
+        '403': { $ref: '#/components/responses/AdminForbidden' }
+        '404': { $ref: '#/components/responses/AdminNotFound' }
+        '500': { $ref: '#/components/responses/AdminInternalError' }
+
+    patch:
+      tags: [Admin]
+      operationId: UpdateAdminInstructor
+      summary: Изменить инструктора
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminUpdateInstructorRequest'
+      responses:
+        '200':
+          description: Инструктор обновлён
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminInstructor'
+        '400': { $ref: '#/components/responses/AdminBadRequest' }
+        '401': { $ref: '#/components/responses/AdminUnauthorized' }
+        '403': { $ref: '#/components/responses/AdminForbidden' }
+        '404': { $ref: '#/components/responses/AdminNotFound' }
+        '409': { $ref: '#/components/responses/AdminConflict' }
+        '422': { $ref: '#/components/responses/AdminUnprocessable' }
+        '500': { $ref: '#/components/responses/AdminInternalError' }
+    delete:
+      tags: [Admin]
+      operationId: DeleteAdminInstructor
+      summary: Деактивировать инструктора
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: Инструктор деактивирован
+        '400': { $ref: '#/components/responses/AdminBadRequest' }
+        '401': { $ref: '#/components/responses/AdminUnauthorized' }
+        '403': { $ref: '#/components/responses/AdminForbidden' }
+        '404': { $ref: '#/components/responses/AdminNotFound' }
+        '409': { $ref: '#/components/responses/AdminConflict' }
+        '422': { $ref: '#/components/responses/AdminUnprocessable' }
+        '500': { $ref: '#/components/responses/AdminInternalError' }
+
+  /admin/instructors/{id}/services:
+    parameters:
+      - $ref: '#/components/parameters/AdminId'
+    get:
+      tags: [Admin]
+      operationId: GetAdminInstructorServices
+      summary: Получить все назначенные услуги инструктора
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Назначенные услуги, включая неактивные; пустой массив при отсутствии назначений
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AdminService'
+        '400': { $ref: '#/components/responses/AdminBadRequest' }
+        '401': { $ref: '#/components/responses/AdminUnauthorized' }
+        '403': { $ref: '#/components/responses/AdminForbidden' }
+        '404': { $ref: '#/components/responses/AdminNotFound' }
+        '500': { $ref: '#/components/responses/AdminInternalError' }
+    post:
+      tags: [Admin]
+      operationId: AssignAdminInstructorService
+      summary: Назначить услугу инструктору
+      description: Можно назначать существующие активные и неактивные услуги существующему инструктору.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminAssignInstructorServiceRequest'
+      responses:
+        '204':
+          description: Услуга назначена
+        '400': { $ref: '#/components/responses/AdminBadRequest' }
+        '401': { $ref: '#/components/responses/AdminUnauthorized' }
+        '403': { $ref: '#/components/responses/AdminForbidden' }
+        '404': { $ref: '#/components/responses/AdminNotFound' }
+        '409': { $ref: '#/components/responses/AdminConflict' }
+        '500': { $ref: '#/components/responses/AdminInternalError' }
+
+  /admin/instructors/{id}/services/{serviceId}:
+    parameters:
+      - $ref: '#/components/parameters/AdminId'
+      - name: serviceId
+        in: path
+        required: true
+        schema: { type: integer, minimum: 1 }
+    delete:
+      tags: [Admin]
+      operationId: RemoveAdminInstructorService
+      summary: Снять назначение услуги инструктору
+      description: Удаляется только связь; существующие бронирования сохраняются. Отсутствующее назначение возвращает 404.
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: Назначение снято
+        '400': { $ref: '#/components/responses/AdminBadRequest' }
+        '401': { $ref: '#/components/responses/AdminUnauthorized' }
+        '403': { $ref: '#/components/responses/AdminForbidden' }
+        '404': { $ref: '#/components/responses/AdminNotFound' }
+        '500': { $ref: '#/components/responses/AdminInternalError' }
+
+  /admin/instructors/{id}/schedules:
+    parameters:
+      - $ref: '#/components/parameters/AdminId'
+    get:
+      tags: [Admin]
+      operationId: GetAdminInstructorSchedules
+      summary: Получить рабочее расписание инструктора
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: date_from
+          in: query
+          schema: { type: string, format: date }
+        - name: date_to
+          in: query
+          schema: { type: string, format: date }
+      responses:
+        '200':
+          description: Интервалы расписания
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AdminSchedule'
+        '400': { $ref: '#/components/responses/AdminBadRequest' }
+        '401': { $ref: '#/components/responses/AdminUnauthorized' }
+        '403': { $ref: '#/components/responses/AdminForbidden' }
+        '404': { $ref: '#/components/responses/AdminNotFound' }
+        '500': { $ref: '#/components/responses/AdminInternalError' }
+    post:
+      tags: [Admin]
+      operationId: CreateAdminInstructorSchedule
+      summary: Добавить рабочий интервал инструктора
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminCreateScheduleRequest'
+      responses:
+        '201':
+          description: Интервал создан
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminSchedule'
+        '400': { $ref: '#/components/responses/AdminBadRequest' }
+        '401': { $ref: '#/components/responses/AdminUnauthorized' }
+        '403': { $ref: '#/components/responses/AdminForbidden' }
+        '404': { $ref: '#/components/responses/AdminNotFound' }
+        '409': { $ref: '#/components/responses/AdminConflict' }
+        '422': { $ref: '#/components/responses/AdminUnprocessable' }
+        '500': { $ref: '#/components/responses/AdminInternalError' }
+
+  /admin/instructors/{id}/schedules/{scheduleId}:
+    parameters:
+      - $ref: '#/components/parameters/AdminId'
+      - name: scheduleId
+        in: path
+        required: true
+        schema: { type: integer, minimum: 1 }
+    patch:
+      tags: [Admin]
+      operationId: UpdateAdminInstructorSchedule
+      summary: Изменить рабочий интервал
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminUpdateScheduleRequest'
+      responses:
+        '200':
+          description: Интервал обновлён
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminSchedule'
+        '400': { $ref: '#/components/responses/AdminBadRequest' }
+        '401': { $ref: '#/components/responses/AdminUnauthorized' }
+        '403': { $ref: '#/components/responses/AdminForbidden' }
+        '404': { $ref: '#/components/responses/AdminNotFound' }
+        '409': { $ref: '#/components/responses/AdminConflict' }
+        '422': { $ref: '#/components/responses/AdminUnprocessable' }
+        '500': { $ref: '#/components/responses/AdminInternalError' }
+    delete:
+      tags: [Admin]
+      operationId: DeleteAdminInstructorSchedule
+      summary: Удалить рабочий интервал
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: Интервал удалён
+        '400': { $ref: '#/components/responses/AdminBadRequest' }
+        '401': { $ref: '#/components/responses/AdminUnauthorized' }
+        '403': { $ref: '#/components/responses/AdminForbidden' }
+        '404': { $ref: '#/components/responses/AdminNotFound' }
+        '409': { $ref: '#/components/responses/AdminConflict' }
+        '422': { $ref: '#/components/responses/AdminUnprocessable' }
+        '500': { $ref: '#/components/responses/AdminInternalError' }
+
+  /admin/lesson-bookings:
+    get:
+      tags: [Admin]
+      operationId: GetAdminLessonBookings
+      summary: Получить бронирования занятий
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            $ref: '#/components/schemas/AdminLessonStatus'
+        - name: date
+          in: query
+          schema: { type: string, format: date }
+        - name: user_id
+          in: query
+          schema: { type: integer, minimum: 1 }
+        - name: instructor_id
+          in: query
+          schema: { type: integer, minimum: 1 }
+      responses:
+        '200':
+          description: Список бронирований занятий
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AdminLessonBooking'
+        '400': { $ref: '#/components/responses/AdminBadRequest' }
+        '401': { $ref: '#/components/responses/AdminUnauthorized' }
+        '403': { $ref: '#/components/responses/AdminForbidden' }
+        '500': { $ref: '#/components/responses/AdminInternalError' }
+
+  /admin/lesson-bookings/{id}:
+    parameters:
+      - $ref: '#/components/parameters/AdminId'
+    get:
+      tags: [Admin]
+      operationId: GetAdminLessonBookingById
+      summary: Получить бронирование занятия
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Бронирование занятия
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminLessonBooking'
+        '400': { $ref: '#/components/responses/AdminBadRequest' }
+        '401': { $ref: '#/components/responses/AdminUnauthorized' }
+        '403': { $ref: '#/components/responses/AdminForbidden' }
+        '404': { $ref: '#/components/responses/AdminNotFound' }
+        '500': { $ref: '#/components/responses/AdminInternalError' }
+    patch:
+      tags: [Admin]
+      operationId: UpdateAdminLessonBooking
+      summary: Изменить статус занятия
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status:
+                  $ref: '#/components/schemas/AdminLessonStatus'
+      responses:
+        '200':
+          description: Статус занятия обновлён
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminLessonBooking'
+        '400': { $ref: '#/components/responses/AdminBadRequest' }
+        '401': { $ref: '#/components/responses/AdminUnauthorized' }
+        '403': { $ref: '#/components/responses/AdminForbidden' }
+        '404': { $ref: '#/components/responses/AdminNotFound' }
+        '409': { $ref: '#/components/responses/AdminConflict' }
+        '422': { $ref: '#/components/responses/AdminUnprocessable' }
+        '500': { $ref: '#/components/responses/AdminInternalError' }
+
+  /admin/equipment-bookings:
+    get:
+      tags: [Admin]
+      operationId: GetAdminEquipmentBookings
+      summary: Получить бронирования оборудования
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            $ref: '#/components/schemas/AdminRentalStatus'
+        - name: date
+          in: query
+          schema: { type: string, format: date }
+        - name: user_id
+          in: query
+          schema: { type: integer, minimum: 1 }
+      responses:
+        '200':
+          description: Список бронирований оборудования
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AdminEquipmentRental'
+        '400': { $ref: '#/components/responses/AdminBadRequest' }
+        '401': { $ref: '#/components/responses/AdminUnauthorized' }
+        '403': { $ref: '#/components/responses/AdminForbidden' }
+        '500': { $ref: '#/components/responses/AdminInternalError' }
+
+  /admin/equipment-bookings/{id}:
+    parameters:
+      - $ref: '#/components/parameters/AdminId'
+    get:
+      tags: [Admin]
+      operationId: GetAdminEquipmentBookingById
+      summary: Получить аренду оборудования
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Подробности аренды
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminEquipmentRental'
+        '400': { $ref: '#/components/responses/AdminBadRequest' }
+        '401': { $ref: '#/components/responses/AdminUnauthorized' }
+        '403': { $ref: '#/components/responses/AdminForbidden' }
+        '404': { $ref: '#/components/responses/AdminNotFound' }
+        '500': { $ref: '#/components/responses/AdminInternalError' }
+    patch:
+      tags: [Admin]
+      operationId: UpdateAdminEquipmentBooking
+      summary: Изменить статус аренды
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status:
+                  $ref: '#/components/schemas/AdminRentalStatus'
+      responses:
+        '200':
+          description: Статус аренды обновлён
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminEquipmentRental'
+        '400': { $ref: '#/components/responses/AdminBadRequest' }
+        '401': { $ref: '#/components/responses/AdminUnauthorized' }
+        '403': { $ref: '#/components/responses/AdminForbidden' }
+        '404': { $ref: '#/components/responses/AdminNotFound' }
+        '409': { $ref: '#/components/responses/AdminConflict' }
+        '422': { $ref: '#/components/responses/AdminUnprocessable' }
+        '500': { $ref: '#/components/responses/AdminInternalError' }
+
+  /admin/equipment:
+    post:
+      tags: [Admin]
+      operationId: CreateAdminEquipment
+      summary: Создать модель оборудования
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminCreateEquipmentRequest'
+      responses:
+        '201':
+          description: Модель оборудования создана
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminEquipment'
+        '400': { $ref: '#/components/responses/AdminBadRequest' }
+        '401': { $ref: '#/components/responses/AdminUnauthorized' }
+        '403': { $ref: '#/components/responses/AdminForbidden' }
+        '404': { $ref: '#/components/responses/AdminNotFound' }
+        '409': { $ref: '#/components/responses/AdminConflict' }
+        '422': { $ref: '#/components/responses/AdminUnprocessable' }
+        '500': { $ref: '#/components/responses/AdminInternalError' }
+
+  /admin/equipment/{id}:
+    parameters:
+      - $ref: '#/components/parameters/AdminId'
+    patch:
+      tags: [Admin]
+      operationId: UpdateAdminEquipment
+      summary: Изменить модель оборудования
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminUpdateEquipmentRequest'
+      responses:
+        '200':
+          description: Модель обновлена
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminEquipment'
+        '400': { $ref: '#/components/responses/AdminBadRequest' }
+        '401': { $ref: '#/components/responses/AdminUnauthorized' }
+        '403': { $ref: '#/components/responses/AdminForbidden' }
+        '404': { $ref: '#/components/responses/AdminNotFound' }
+        '409': { $ref: '#/components/responses/AdminConflict' }
+        '422': { $ref: '#/components/responses/AdminUnprocessable' }
+        '500': { $ref: '#/components/responses/AdminInternalError' }
+    delete:
+      tags: [Admin]
+      operationId: DeleteAdminEquipment
+      summary: Удалить модель без связанных записей
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: Модель удалена
+        '400': { $ref: '#/components/responses/AdminBadRequest' }
+        '401': { $ref: '#/components/responses/AdminUnauthorized' }
+        '403': { $ref: '#/components/responses/AdminForbidden' }
+        '404': { $ref: '#/components/responses/AdminNotFound' }
+        '409': { $ref: '#/components/responses/AdminConflict' }
+        '422': { $ref: '#/components/responses/AdminUnprocessable' }
+        '500': { $ref: '#/components/responses/AdminInternalError' }
+
+  /admin/equipment/units:
+    get:
+      tags: [Admin]
+      operationId: GetAdminEquipmentUnits
+      summary: Получить физические экземпляры оборудования
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: equipment_id
+          in: query
+          schema: { type: integer, minimum: 1 }
+      responses:
+        '200':
+          description: Список экземпляров
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AdminEquipmentUnit'
+        '400': { $ref: '#/components/responses/AdminBadRequest' }
+        '401': { $ref: '#/components/responses/AdminUnauthorized' }
+        '403': { $ref: '#/components/responses/AdminForbidden' }
+        '500': { $ref: '#/components/responses/AdminInternalError' }
+    post:
+      tags: [Admin]
+      operationId: CreateAdminEquipmentUnit
+      summary: Добавить физический экземпляр
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminCreateEquipmentUnitRequest'
+      responses:
+        '201':
+          description: Экземпляр добавлен
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminEquipmentUnit'
+        '400': { $ref: '#/components/responses/AdminBadRequest' }
+        '401': { $ref: '#/components/responses/AdminUnauthorized' }
+        '403': { $ref: '#/components/responses/AdminForbidden' }
+        '404': { $ref: '#/components/responses/AdminNotFound' }
+        '409': { $ref: '#/components/responses/AdminConflict' }
+        '422': { $ref: '#/components/responses/AdminUnprocessable' }
+        '500': { $ref: '#/components/responses/AdminInternalError' }
+
+  /admin/equipment/units/{id}:
+    parameters:
+      - $ref: '#/components/parameters/AdminId'
+    patch:
+      tags: [Admin]
+      operationId: UpdateAdminEquipmentUnit
+      summary: Изменить физический экземпляр
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminUpdateEquipmentUnitRequest'
+      responses:
+        '200':
+          description: Экземпляр обновлён
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminEquipmentUnit'
+        '400': { $ref: '#/components/responses/AdminBadRequest' }
+        '401': { $ref: '#/components/responses/AdminUnauthorized' }
+        '403': { $ref: '#/components/responses/AdminForbidden' }
+        '404': { $ref: '#/components/responses/AdminNotFound' }
+        '409': { $ref: '#/components/responses/AdminConflict' }
+        '422': { $ref: '#/components/responses/AdminUnprocessable' }
+        '500': { $ref: '#/components/responses/AdminInternalError' }
+
+  /admin/equipment/sets:
+    post:
+      tags: [Admin]
+      operationId: CreateAdminEquipmentSet
+      summary: Создать комплект
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminCreateEquipmentSetRequest'
+      responses:
+        '201':
+          description: Комплект создан
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminEquipmentSetDetail'
+        '400': { $ref: '#/components/responses/AdminBadRequest' }
+        '401': { $ref: '#/components/responses/AdminUnauthorized' }
+        '403': { $ref: '#/components/responses/AdminForbidden' }
+        '404': { $ref: '#/components/responses/AdminNotFound' }
+        '409': { $ref: '#/components/responses/AdminConflict' }
+        '422': { $ref: '#/components/responses/AdminUnprocessable' }
+        '500': { $ref: '#/components/responses/AdminInternalError' }
+
+  /admin/equipment/sets/{id}:
+    parameters:
+      - $ref: '#/components/parameters/AdminId'
+    patch:
+      tags: [Admin]
+      operationId: UpdateAdminEquipmentSet
+      summary: Изменить комплект
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminUpdateEquipmentSetRequest'
+      responses:
+        '200':
+          description: Комплект обновлён
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminEquipmentSetDetail'
+        '400': { $ref: '#/components/responses/AdminBadRequest' }
+        '401': { $ref: '#/components/responses/AdminUnauthorized' }
+        '403': { $ref: '#/components/responses/AdminForbidden' }
+        '404': { $ref: '#/components/responses/AdminNotFound' }
+        '409': { $ref: '#/components/responses/AdminConflict' }
+        '422': { $ref: '#/components/responses/AdminUnprocessable' }
+        '500': { $ref: '#/components/responses/AdminInternalError' }
+    delete:
+      tags: [Admin]
+      operationId: DeleteAdminEquipmentSet
+      summary: Деактивировать комплект
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: Комплект деактивирован
+        '400': { $ref: '#/components/responses/AdminBadRequest' }
+        '401': { $ref: '#/components/responses/AdminUnauthorized' }
+        '403': { $ref: '#/components/responses/AdminForbidden' }
+        '404': { $ref: '#/components/responses/AdminNotFound' }
+        '409': { $ref: '#/components/responses/AdminConflict' }
+        '422': { $ref: '#/components/responses/AdminUnprocessable' }
+        '500': { $ref: '#/components/responses/AdminInternalError' }
+
+
 
 
 components:
@@ -1744,6 +2575,426 @@ components:
           type: integer
           minimum: 0
 
+    
+    AdminLessonStatus:
+      type: string
+      enum: [confirmed, cancelled, completed, no_show]
+
+    AdminRentalStatus:
+      type: string
+      enum: [pending, confirmed, issued, returned, cancelled]
+
+    AdminUnitStatus:
+      type: string
+      enum: [available, maintenance, written_off]
+
+    AdminService:
+      type: object
+      required: [id, name, description, duration_minutes, price, is_active]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        description: { type: string, nullable: true }
+        duration_minutes: { type: integer }
+        price: { type: integer }
+        is_active: { type: boolean }
+
+    AdminCreateServiceRequest:
+      type: object
+      required: [name, duration_minutes, price]
+      properties:
+        name: { type: string, minLength: 1 }
+        description: { type: string, nullable: true }
+        duration_minutes: { type: integer, minimum: 1 }
+        price: { type: integer, minimum: 0 }
+        is_active: { type: boolean, default: true }
+
+    AdminUpdateServiceRequest:
+      type: object
+      minProperties: 1
+      properties:
+        name: { type: string, minLength: 1 }
+        description: { type: string, nullable: true }
+        duration_minutes: { type: integer, minimum: 1 }
+        price: { type: integer, minimum: 0 }
+        is_active: { type: boolean }
+
+    AdminInstructor:
+      type: object
+      required: [id, name, specialization, description, experience_years, image_url, is_active]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        specialization: { type: string }
+        description: { type: string, nullable: true }
+        experience_years: { type: integer }
+        image_url: { type: string, nullable: true }
+        is_active: { type: boolean }
+
+    AdminCreateInstructorRequest:
+      type: object
+      required: [user_id, specialization, experience_years]
+      properties:
+        user_id: { type: integer, minimum: 1 }
+        specialization: { type: string, minLength: 1 }
+        experience_years: { type: integer, minimum: 0 }
+        description: { type: string, nullable: true }
+        image_url: { type: string, nullable: true }
+        is_active: { type: boolean, default: true }
+
+    AdminUpdateInstructorRequest:
+      type: object
+      minProperties: 1
+      properties:
+        specialization: { type: string, minLength: 1 }
+        experience_years: { type: integer, minimum: 0 }
+        description: { type: string, nullable: true }
+        image_url: { type: string, nullable: true }
+        is_active: { type: boolean }
+
+    AdminAssignInstructorServiceRequest:
+      type: object
+      required: [service_id]
+      properties:
+        service_id: { type: integer, minimum: 1 }
+
+    AdminSchedule:
+      type: object
+      required: [id, starts_at, ends_at]
+      properties:
+        id: { type: integer }
+        starts_at: { type: string, format: date-time }
+        ends_at: { type: string, format: date-time }
+
+    AdminCreateScheduleRequest:
+      type: object
+      required: [starts_at, ends_at]
+      properties:
+        starts_at: { type: string, format: date-time }
+        ends_at: { type: string, format: date-time }
+
+    AdminUpdateScheduleRequest:
+      type: object
+      minProperties: 1
+      properties:
+        starts_at: { type: string, format: date-time }
+        ends_at: { type: string, format: date-time }
+
+    AdminLessonBooking:
+      type: object
+      required:
+        - id
+        - user_id
+        - client_name
+        - instructor_id
+        - instructor_name
+        - service_id
+        - service_name
+        - starts_at
+        - ends_at
+        - status
+        - total_price
+        - created_at
+      properties:
+        id: { type: integer }
+        user_id: { type: integer }
+        client_name: { type: string }
+        instructor_id: { type: integer }
+        instructor_name: { type: string }
+        service_id: { type: integer }
+        service_name: { type: string }
+        starts_at: { type: string, format: date-time }
+        ends_at: { type: string, format: date-time }
+        status:
+          $ref: '#/components/schemas/AdminLessonStatus'
+        total_price: { type: integer }
+        created_at: { type: string, format: date-time }
+
+    AdminRentalItem:
+      type: object
+      required:
+        - equipment_unit_id
+        - equipment_id
+        - name
+        - size
+        - booked_set_id
+        - item_total_price
+      properties:
+        equipment_unit_id: { type: integer }
+        equipment_id: { type: integer }
+        name: { type: string }
+        size: { type: string }
+        booked_set_id: { type: integer, nullable: true }
+        item_total_price: { type: integer, nullable: true }
+
+    AdminBookedRentalSet:
+      type: object
+      required: [id, equipment_set_id, name, total_price]
+      properties:
+        id: { type: integer }
+        equipment_set_id: { type: integer }
+        name: { type: string }
+        total_price: { type: integer }
+
+    AdminEquipmentRental:
+      type: object
+      required:
+        - id
+        - user_id
+        - client_name
+        - starts_at
+        - ends_at
+        - status
+        - total_price
+        - created_at
+        - items
+        - sets
+      properties:
+        id: { type: integer }
+        user_id: { type: integer }
+        client_name: { type: string }
+        starts_at: { type: string, format: date-time }
+        ends_at: { type: string, format: date-time }
+        status:
+          $ref: '#/components/schemas/AdminRentalStatus'
+        total_price: { type: integer }
+        created_at: { type: string, format: date-time }
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/AdminRentalItem'
+        sets:
+          type: array
+          items:
+            $ref: '#/components/schemas/AdminBookedRentalSet'
+
+    AdminEquipment:
+      type: object
+      required:
+        - id
+        - category_id
+        - name
+        - description
+        - image_url
+        - price_per_hour
+      properties:
+        id: { type: integer }
+        category_id: { type: integer }
+        name: { type: string }
+        description: { type: string, nullable: true }
+        image_url: { type: string, nullable: true }
+        price_per_hour: { type: integer }
+
+    AdminCreateEquipmentRequest:
+      type: object
+      required: [category_id, name, price_per_hour]
+      properties:
+        category_id: { type: integer, minimum: 1 }
+        name: { type: string, minLength: 1 }
+        description: { type: string, nullable: true }
+        image_url: { type: string, nullable: true }
+        price_per_hour: { type: integer, minimum: 0 }
+
+    AdminUpdateEquipmentRequest:
+      type: object
+      minProperties: 1
+      properties:
+        category_id: { type: integer, minimum: 1 }
+        name: { type: string, minLength: 1 }
+        description: { type: string, nullable: true }
+        image_url: { type: string, nullable: true }
+        price_per_hour: { type: integer, minimum: 0 }
+
+    AdminEquipmentUnit:
+      type: object
+      required:
+        - id
+        - equipment_id
+        - inventory_number
+        - size
+        - status
+        - created_at
+      properties:
+        id: { type: integer }
+        equipment_id: { type: integer }
+        inventory_number: { type: string }
+        size: { type: string }
+        status:
+          $ref: '#/components/schemas/AdminUnitStatus'
+        created_at: { type: string, format: date-time }
+
+    AdminCreateEquipmentUnitRequest:
+      type: object
+      required: [equipment_id, inventory_number, size, status]
+      properties:
+        equipment_id: { type: integer, minimum: 1 }
+        inventory_number: { type: string, minLength: 1 }
+        size: { type: string, minLength: 1 }
+        status:
+          $ref: '#/components/schemas/AdminUnitStatus'
+
+    AdminUpdateEquipmentUnitRequest:
+      type: object
+      minProperties: 1
+      properties:
+        inventory_number: { type: string, minLength: 1 }
+        size: { type: string, minLength: 1 }
+        status:
+          $ref: '#/components/schemas/AdminUnitStatus'
+
+    AdminEquipmentSetItemRequest:
+      type: object
+      required: [category_id, quantity]
+      properties:
+        category_id: { type: integer, minimum: 1 }
+        quantity: { type: integer, minimum: 1 }
+
+    AdminEquipmentSetItem:
+      type: object
+      required: [category_id, category_name, quantity]
+      properties:
+        category_id: { type: integer }
+        category_name: { type: string }
+        quantity: { type: integer }
+
+    AdminCreateEquipmentSetRequest:
+      type: object
+      required: [name, sport_type, age_group, price_per_hour, items]
+      properties:
+        name: { type: string, minLength: 1 }
+        description: { type: string, nullable: true }
+        sport_type:
+          type: string
+          enum: [ski, snowboard]
+        age_group:
+          type: string
+          enum: [adult, child]
+        price_per_hour: { type: integer, minimum: 0 }
+        is_active: { type: boolean, default: true }
+        items:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/AdminEquipmentSetItemRequest'
+
+    AdminUpdateEquipmentSetRequest:
+      type: object
+      minProperties: 1
+      properties:
+        name: { type: string, minLength: 1 }
+        description: { type: string, nullable: true }
+        sport_type:
+          type: string
+          enum: [ski, snowboard]
+        age_group:
+          type: string
+          enum: [adult, child]
+        price_per_hour: { type: integer, minimum: 0 }
+        is_active: { type: boolean }
+        items:
+          type: array
+          minItems: 1
+          description: Если передано, заменяет весь состав комплекта
+          items:
+            $ref: '#/components/schemas/AdminEquipmentSetItemRequest'
+
+    AdminEquipmentSetDetail:
+      type: object
+      required:
+        - id
+        - name
+        - sport_type
+        - age_group
+        - price_per_hour
+        - is_active
+        - items
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        description: { type: string, nullable: true }
+        sport_type:
+          type: string
+          enum: [ski, snowboard]
+        age_group:
+          type: string
+          enum: [adult, child]
+        price_per_hour: { type: integer }
+        is_active: { type: boolean }
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/AdminEquipmentSetItem'
+
+    AdminInstructorBooking:
+      type: object
+      required: [id, client_name, service_name, starts_at, ends_at, status]
+      properties:
+        id: { type: integer }
+        client_name: { type: string }
+        service_name: { type: string }
+        starts_at: { type: string, format: date-time }
+        ends_at: { type: string, format: date-time }
+        status:
+          $ref: '#/components/schemas/AdminLessonStatus'
 
 
-        
+  parameters:
+    AdminId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+        minimum: 1
+      
+  
+  responses:
+    AdminBadRequest:
+      description: Некорректные данные запроса
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    AdminUnauthorized:
+      description: Требуется авторизация
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    AdminForbidden:
+      description: Недостаточно прав
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    AdminNotFound:
+      description: Ресурс не найден
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    AdminConflict:
+      description: Конфликт данных или недопустимый переход статуса
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    AdminUnprocessable:
+      description: Нарушение бизнес-правил
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    AdminInternalError:
+      description: Внутренняя ошибка сервера
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+

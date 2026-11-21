@@ -20,6 +20,8 @@ type InstructorRepository interface {
 	GetServiceDuration(ctx context.Context, serviceID int) (int, error)
 	InstructorProvidesService(ctx context.Context, instructorID, serviceID int) (bool, error)
 	GetInstructorServices(ctx context.Context, instructorID int) ([]InstructorServiceInfo, error)
+	UpdateInstructorBookingStatus(ctx context.Context, userID, bookingID int, status string) (InstructorBooking, error)
+	InstructorBookingExists(ctx context.Context, userID, bookingID int) (bool, error)
 }
 
 type InstructorService struct {
@@ -287,4 +289,46 @@ func (s *InstructorService) GetInstructorServices(ctx context.Context, instructo
 	}
 
 	return services, nil
+}
+
+var ErrInvalidBookingStatus = errors.New("invalid booking status")
+var ErrInstructorBookingNotFound = errors.New("instructor booking not found")
+var ErrInstructorBookingConflict = errors.New("instructor booking status conflict")
+
+func (s *InstructorService) UpdateInstructorBookingStatus(ctx context.Context, userID, bookingID int, status string) (InstructorBooking, error) {
+	if bookingID <= 0 {
+		return InstructorBooking{}, ErrInstructorInvalidID
+	}
+
+	if status != "completed" && status != "no_show" {
+		return InstructorBooking{}, ErrInvalidBookingStatus
+	}
+
+	_, err := s.repo.GetInstructorByUserID(ctx, userID)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return InstructorBooking{}, ErrNotInstructor
+		}
+		return InstructorBooking{}, fmt.Errorf("get instructor by user ID: %w", err)
+	}
+
+	booking, err := s.repo.UpdateInstructorBookingStatus(ctx, userID, bookingID, status)
+	if err == nil {
+		return booking, nil
+	}
+
+	if !errors.Is(err, pgx.ErrNoRows) {
+		return InstructorBooking{}, fmt.Errorf("update instructor booking status: %w", err)
+	}
+
+	exists, err := s.repo.InstructorBookingExists(ctx, userID, bookingID)
+	if err != nil {
+		return InstructorBooking{}, fmt.Errorf("check instructor booking: %w", err)
+	}
+
+	if !exists {
+		return InstructorBooking{}, ErrInstructorBookingNotFound
+	}
+
+	return InstructorBooking{}, ErrInstructorBookingConflict
 }

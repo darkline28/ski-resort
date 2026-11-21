@@ -55,3 +55,9 @@ gen-rental:
 		-config api/oapi-codegen.yaml \
 		-include-tags rental \
 		api/openapi.yaml > internal/rental/api/api.gen.go
+
+gen-admin:
+	cd backend && oapi-codegen \
+		-config api/oapi-codegen.yaml \
+		-include-tags Admin \
+		api/openapi.yaml > internal/admin/api/api.gen.go

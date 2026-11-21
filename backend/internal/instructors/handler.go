@@ -299,3 +299,60 @@ func (h *Handler) GetInstructorServices(ctx context.Context, request api.GetInst
 
 	return api.GetInstructorServices200JSONResponse(response), nil
 }
+
+func (h *Handler) UpdateInstructorBookingStatus(ctx context.Context, request api.UpdateInstructorBookingStatusRequestObject) (api.UpdateInstructorBookingStatusResponseObject, error) {
+	userID, ok := middleware.UserIDFromContext(ctx)
+	if !ok {
+		return api.UpdateInstructorBookingStatus401JSONResponse{
+			AdminUnauthorizedJSONResponse: api.AdminUnauthorizedJSONResponse{Error: "unauthorized", Message: "Пользователь не авторизован"},
+		}, nil
+	}
+
+	if request.Id <= 0 {
+		return api.UpdateInstructorBookingStatus400JSONResponse{
+			AdminBadRequestJSONResponse: api.AdminBadRequestJSONResponse{Error: "bad_request", Message: "Некорректный ID бронирования"},
+		}, nil
+	}
+
+	booking, err := h.service.UpdateInstructorBookingStatus(ctx, userID, request.Id, string(request.Body.Status))
+	if err != nil {
+		switch {
+		case errors.Is(err, ErrInvalidBookingStatus), errors.Is(err, ErrInstructorInvalidID):
+			return api.UpdateInstructorBookingStatus400JSONResponse{
+				AdminBadRequestJSONResponse: api.AdminBadRequestJSONResponse{Error: "bad_request", Message: "Некорректные данные запроса"},
+			}, nil
+
+		case errors.Is(err, ErrNotInstructor):
+			return api.UpdateInstructorBookingStatus403JSONResponse{
+				AdminForbiddenJSONResponse: api.AdminForbiddenJSONResponse{Error: "forbidden", Message: "Доступ разрешён только инструкторам"},
+			}, nil
+
+		case errors.Is(err, ErrInstructorBookingNotFound):
+			return api.UpdateInstructorBookingStatus404JSONResponse{
+				AdminNotFoundJSONResponse: api.AdminNotFoundJSONResponse{Error: "not_found", Message: "Бронирование не найдено"},
+			}, nil
+
+		case errors.Is(err, ErrInstructorBookingConflict):
+			return api.UpdateInstructorBookingStatus409JSONResponse{
+				AdminConflictJSONResponse: api.AdminConflictJSONResponse{Error: "invalid_status_transition", Message: "Изменение статуса недоступно"},
+			}, nil
+
+		default:
+			slog.ErrorContext(ctx, "failed to update instructor booking status", "user_id", userID, "booking_id", request.Id, "error", err)
+			return api.UpdateInstructorBookingStatus500JSONResponse{
+				AdminInternalErrorJSONResponse: api.AdminInternalErrorJSONResponse{Error: "internal_server_error", Message: "Внутренняя ошибка сервера"},
+			}, nil
+		}
+	}
+
+	response := api.AdminInstructorBooking{
+		Id:          booking.ID,
+		ClientName:  booking.ClientName,
+		ServiceName: booking.ServiceName,
+		StartsAt:    booking.StartsAt,
+		EndsAt:      booking.EndsAt,
+		Status:      api.AdminLessonStatus(booking.Status),
+	}
+
+	return api.UpdateInstructorBookingStatus200JSONResponse(response), nil
+}
