@@ -18,6 +18,7 @@
 - Docker с поддержкой Docker Compose
 
 Для запуска через Docker не требуется отдельно устанавливать Go, Node.js или PostgreSQL.
+Перед запуском убедитесь, что Docker Desktop (Windows/macOS) или Docker Engine с Compose (Linux) установлен и запущен.
 
 ## Установка и запуск
 
