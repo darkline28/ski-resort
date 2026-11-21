@@ -30,17 +30,24 @@ import (
 
 func main() {
 
-	if err := godotenv.Load("../.env"); err != nil {
-		log.Fatal(err)
-	}
+	_ = godotenv.Load("../.env")
 	user := os.Getenv("POSTGRES_USER")
 	password := os.Getenv("POSTGRES_PASSWORD")
 	dbName := os.Getenv("POSTGRES_DB")
 	port := os.Getenv("POSTGRES_PORT")
+	host := os.Getenv("POSTGRES_HOST")
+	if host == "" {
+		host = "localhost"
+	}
+
 	jwtSecret := os.Getenv("JWT_SECRET")
 	jwtTTL := os.Getenv("JWT_TTL")
 
-	dsn := fmt.Sprintf("postgres://%s:%s@localhost:%s/%s?sslmode=disable", user, password, port, dbName)
+	// dsn := fmt.Sprintf("postgres://%s:%s@localhost:%s/%s?sslmode=disable", user, password, port, dbName)
+	dsn := fmt.Sprintf(
+		"postgres://%s:%s@%s:%s/%s?sslmode=disable",
+		user, password, host, port, dbName,
+	)
 	ctx := context.Background()
 	pool, err := database.NewPool(ctx, dsn)
 	if err != nil {
